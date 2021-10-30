@@ -2,6 +2,7 @@ package cn.lzgabel.converter.bean.subprocess;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -9,7 +10,6 @@ import lombok.experimental.SuperBuilder;
  * 〈子流程定义〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 
@@ -17,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class SubProcessDefinition extends BaseDefinition {
 
+    @NonNull
     private BaseDefinition childNode;
 
     @Override

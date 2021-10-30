@@ -3,6 +3,7 @@ package cn.lzgabel.converter.bean.task;
 import cn.lzgabel.converter.bean.BaseDefinition;
 import com.alibaba.fastjson.JSONObject;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -10,7 +11,6 @@ import lombok.experimental.SuperBuilder;
  * 〈JobWorker定义〉
  *
  * @author lizhi
- * @date 2021-10-30
  * @since 1.0.0
  */
 
@@ -18,6 +18,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public abstract class JobWorkerDefinition extends BaseDefinition {
 
+  @NonNull
   private String jobType;
 
   private String jobRetries = "3";

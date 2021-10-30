@@ -8,7 +8,6 @@ import lombok.experimental.SuperBuilder;
  * 〈并行网关〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 

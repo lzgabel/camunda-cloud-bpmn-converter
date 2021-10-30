@@ -7,7 +7,6 @@ import lombok.experimental.SuperBuilder;
  * 〈排他网关定义〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 

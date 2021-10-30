@@ -1,6 +1,7 @@
 package cn.lzgabel.converter.bean.event.intermediate;
 
 import lombok.Data;
+import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -8,7 +9,6 @@ import lombok.experimental.SuperBuilder;
  * 〈〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 
@@ -16,8 +16,10 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class MessageIntermediateCatchEventDefinition extends IntermediateCatchEventDefinition {
 
+    @NonNull
     private String messageName;
 
+    @NonNull
     private String correlationKey;
 
     @Override

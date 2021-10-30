@@ -5,7 +5,6 @@ package cn.lzgabel.converter.bean.event.start;
  * 〈〉
  *
  * @author lizhi
- * @create 2021/11/10
  * @since 1.0.0
  */
 

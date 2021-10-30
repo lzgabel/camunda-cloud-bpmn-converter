@@ -8,7 +8,6 @@ import lombok.experimental.SuperBuilder;
  * 〈业务规则定义〉
  *
  * @author lizhi
- * @date 2021-10-30
  * @since 1.0.0
  */
 

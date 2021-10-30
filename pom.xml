@@ -11,7 +11,7 @@
 
 	<groupId>cn.lzgabel.converter</groupId>
 	<artifactId>camunda-cloud-bpmn-converter</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 
 	<name>camunda-cloud-bpmn-converter</name>
 	<url>https://github.com/Lzgabel/camunda-cloud-bpmn-converter</url>
@@ -90,11 +90,31 @@
 		<finalName>camunda-cloud-bpmn-converter</finalName>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
-
-			<!--  必须配置GPG插件用于使用以下配置对组件进行签名 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- GPG -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

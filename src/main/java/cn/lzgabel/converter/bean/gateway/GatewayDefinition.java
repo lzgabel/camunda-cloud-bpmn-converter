@@ -11,7 +11,6 @@ import java.util.List;
  * 〈网关数据定义〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 
@@ -29,10 +28,12 @@ public abstract class GatewayDefinition extends BaseDefinition {
 
     public abstract static class GatewayDefinitionBuilder<C extends GatewayDefinition, B extends GatewayDefinition.GatewayDefinitionBuilder<C, B>>
             extends BaseDefinitionBuilder<C, B> {
+
+        public GatewayDefinitionBuilder() {
+            branchNodes = Lists.newArrayList();
+        }
+
         public B branchNode(BranchNode branchNode) {
-            if (branchNodes == null) {
-                branchNodes = Lists.newArrayList();
-            }
             branchNodes.add(branchNode);
             return self();
         }

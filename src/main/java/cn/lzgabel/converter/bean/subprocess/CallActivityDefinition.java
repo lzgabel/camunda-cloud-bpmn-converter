@@ -2,6 +2,7 @@ package cn.lzgabel.converter.bean.subprocess;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -9,7 +10,6 @@ import lombok.experimental.SuperBuilder;
  * 〈调用活动定义〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 
@@ -20,6 +20,7 @@ public class CallActivityDefinition extends BaseDefinition {
     /**
      * 子流程 id
      */
+    @NonNull
     private String processId;
 
     /**

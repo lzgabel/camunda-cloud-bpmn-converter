@@ -11,7 +11,6 @@ import java.io.Serializable;
  * 〈基础元素定义〉
  *
  * @author lizhi
- * @date 2021-10-30
  * @since 1.0.0
  */
 

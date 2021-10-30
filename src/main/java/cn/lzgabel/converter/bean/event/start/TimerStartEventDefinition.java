@@ -1,6 +1,7 @@
 package cn.lzgabel.converter.bean.event.start;
 
 import lombok.Data;
+import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -8,7 +9,6 @@ import lombok.experimental.SuperBuilder;
  * 〈〉
  *
  * @author lizhi
- * @date 2021/11/10
  * @since 1.0.0
  */
 
@@ -19,9 +19,10 @@ public class TimerStartEventDefinition extends StartEventDefinition {
     /**
      * {@link TimerDefinitionType}
      */
+    @NonNull
     private String timerDefinitionType;
 
-
+    @NonNull
     private String timerDefinition;
 
 

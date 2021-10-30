@@ -17,6 +17,7 @@ import io.camunda.zeebe.model.bpmn.builder.*;
 import io.camunda.zeebe.model.bpmn.instance.*;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeCalledElement;
 import org.apache.commons.lang3.StringUtils;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
  * 〈基于 json 格式自动生成 bpmn 文件〉
  *
  * @author lizhi
- * @date 2021-10-30
  * @since 1.0.0
  */
 
@@ -44,8 +44,13 @@ public class BpmnBuilder {
         try {
             JSONObject object = JSON.parseObject(json, JSONObject.class);
             ProcessBuilder executableProcess = Bpmn.createExecutableProcess();
-            JSONObject workflow = object.getJSONObject("process");
-            executableProcess.name(workflow.getString("name")).id(workflow.getString("processId"));
+            JSONObject process = object.getJSONObject("process");
+            Optional.ofNullable(process.getString("name"))
+                    .filter(StringUtils::isNotBlank)
+                    .ifPresent(executableProcess::name);
+            Optional.ofNullable(process.getString("processId"))
+                    .filter(StringUtils::isNotBlank)
+                    .ifPresent(executableProcess::id);
 
             StartEventBuilder startEventBuilder = executableProcess.startEvent();
             JSONObject flowNode = object.getJSONObject("processNode");
@@ -207,15 +212,9 @@ public class BpmnBuilder {
         }
         // 设置条件表达式
         if (Objects.isNull(sequenceFlow.getConditionExpression()) && StringUtils.isNotBlank(expression)) {
-            Method createInstance = getDeclaredMethod(exclusiveGatewayBuilder, "createInstance", Class.class);
-            createInstance.setAccessible(true);
-            try {
-                ConditionExpression conditionExpression = (ConditionExpression) createInstance.invoke(exclusiveGatewayBuilder, ConditionExpression.class);
-                conditionExpression.setTextContent(!expression.isEmpty() && !expression.startsWith("=") ? String.format("=%s", expression) : expression);
-                sequenceFlow.setConditionExpression(conditionExpression);
-            } catch (IllegalAccessException | InvocationTargetException ex) {
-                ex.printStackTrace();
-            }
+            ConditionExpression conditionExpression = createInstance(exclusiveGatewayBuilder, ConditionExpression.class);
+            conditionExpression.setTextContent(!expression.isEmpty() && !expression.startsWith("=") ? String.format("=%s", expression) : expression);
+            sequenceFlow.setConditionExpression(conditionExpression);
         }
     }
 
@@ -586,5 +585,10 @@ public class BpmnBuilder {
 
     private static AbstractFlowNodeBuilder<?, ?> moveToNode(AbstractFlowNodeBuilder<?, ?> abstractFlowNodeBuilder, String id) {
         return abstractFlowNodeBuilder.moveToNode(id);
+    }
+
+    private static <T extends ModelElementInstance>
+    T createInstance(AbstractFlowNodeBuilder<?, ?> abstractFlowNodeBuilder, Class<T> clazz) {
+        return abstractFlowNodeBuilder.getElement().getModelInstance().newInstance(clazz);
     }
 }

@@ -1,9 +1,5 @@
 package cn.lzgabel.converter;
 
-import com.alibaba.fastjson.JSONObject;
-import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import cn.lzgabel.converter.bean.Process;
 import cn.lzgabel.converter.bean.ProcessDefinition;
 import cn.lzgabel.converter.bean.event.intermediate.MessageIntermediateCatchEventDefinition;
 import cn.lzgabel.converter.bean.event.intermediate.TimerIntermediateCatchEventDefinition;
@@ -16,6 +12,9 @@ import cn.lzgabel.converter.bean.gateway.ParallelGatewayDefinition;
 import cn.lzgabel.converter.bean.subprocess.CallActivityDefinition;
 import cn.lzgabel.converter.bean.subprocess.SubProcessDefinition;
 import cn.lzgabel.converter.bean.task.*;
+import com.alibaba.fastjson.JSONObject;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -647,10 +646,8 @@ public class BpmnBuilderTest {
 
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -679,10 +676,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -714,10 +709,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -750,10 +743,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -786,10 +777,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -816,10 +805,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -847,10 +834,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -874,10 +859,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -906,10 +889,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -937,10 +918,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -967,10 +946,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -1005,10 +982,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -1032,10 +1007,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -1084,10 +1057,8 @@ public class BpmnBuilderTest {
                 .build();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
@@ -1138,10 +1109,8 @@ public class BpmnBuilderTest {
         List<BranchNode> branchNodes = processNode.getBranchNodes();
 
         ProcessDefinition processDefinition = ProcessDefinition.builder()
-                .process(Process.builder()
-                        .processId("process-id")
-                        .name("process-name")
-                        .build())
+                .name("process-name")
+                .processId("process-id")
                 .processNode(processNode)
                 .build();
 
