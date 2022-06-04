@@ -1,5 +1,7 @@
 package cn.lzgabel.converter.bean.gateway;
 
+import cn.lzgabel.converter.bean.BpmnElementType;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -9,12 +11,12 @@ import lombok.experimental.SuperBuilder;
  * @author lizhi
  * @since 1.0.0
  */
-
 @SuperBuilder
+@NoArgsConstructor
 public class ExclusiveGatewayDefinition extends GatewayDefinition {
 
-    @Override
-    public String getNodeType() {
-        return "exclusiveGateway";
-    }
+  @Override
+  public String getNodeType() {
+    return BpmnElementType.EXCLUSIVE_GATEWAY.getElementTypeName().get();
+  }
 }

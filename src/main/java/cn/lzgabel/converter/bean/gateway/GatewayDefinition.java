@@ -2,9 +2,10 @@ package cn.lzgabel.converter.bean.gateway;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
 import com.google.common.collect.Lists;
-import lombok.experimental.SuperBuilder;
-
 import java.util.List;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 〈功能简述〉<br>
@@ -13,29 +14,25 @@ import java.util.List;
  * @author lizhi
  * @since 1.0.0
  */
-
+@Data
 @SuperBuilder
+@NoArgsConstructor
 public abstract class GatewayDefinition extends BaseDefinition {
 
-    /**
-     * 分支节点
-     */
-    private List<BranchNode> branchNodes;
+  /** 分支节点 */
+  private List<BranchNode> branchNodes;
 
-    public List<BranchNode> getBranchNodes() {
-        return branchNodes;
+  public abstract static class GatewayDefinitionBuilder<
+          C extends GatewayDefinition, B extends GatewayDefinition.GatewayDefinitionBuilder<C, B>>
+      extends BaseDefinitionBuilder<C, B> {
+
+    public GatewayDefinitionBuilder() {
+      branchNodes = Lists.newArrayList();
     }
 
-    public abstract static class GatewayDefinitionBuilder<C extends GatewayDefinition, B extends GatewayDefinition.GatewayDefinitionBuilder<C, B>>
-            extends BaseDefinitionBuilder<C, B> {
-
-        public GatewayDefinitionBuilder() {
-            branchNodes = Lists.newArrayList();
-        }
-
-        public B branchNode(BranchNode branchNode) {
-            branchNodes.add(branchNode);
-            return self();
-        }
+    public B branchNode(BranchNode branchNode) {
+      branchNodes.add(branchNode);
+      return self();
     }
+  }
 }

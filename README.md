@@ -4,8 +4,8 @@
 <h1>Convert json to bpmn for Camunda Cloud. </h1>
 </div>
 
-
 ## 技术方案
+
 ### 1. 节点类型（nodeType)
 
 - serviceTask
@@ -28,9 +28,11 @@
   - 业务规则任务
 
 ### 2. 数据结构
-  
+
 #### 2.0 `startEvent`
+
 ##### 2.0.0 `noneEvent`
+
 > 默认空事件
 
 ##### 2.0.1 `timerEvent`
@@ -44,6 +46,7 @@
   - `cycle`
     - `R/PT1M` 每分钟
     - `R5/PT1M` 每分钟，共执行5次
+
 ```json
 { 
   "nodeName":"开始",
@@ -53,13 +56,15 @@
   "timerDefinition":"2019-10-01T12:00:00+08:00"
 }
 ```
+
 ##### 2.0.2 `messageEvent`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/message-events/message-events](https://docs.camunda.io/docs/reference/bpmn-processes/message-events/message-events)
->
 >
 > If the `correlationKey` of a message is empty then it will always create a new process instance and does not check if an instance is already active.
 
 - `messageName`
+
 ```json
 { 
   "nodeName":"开始",
@@ -70,6 +75,7 @@
 ```
 
 #### 2.1 `serviceTask`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/service-tasks/service-tasks](https://docs.camunda.io/docs/reference/bpmn-processes/service-tasks/service-tasks)
 
 - `jobType` 若不带 `=` 前缀，则默认会拼接 `namespace`
@@ -82,6 +88,7 @@
       - 引擎最终会去激活 `abc` 任务
     - 动态变量，由流程变量决定: `jobType: '=dynamic-job-type'`
       - 根据流程变量中 `dynamic-job-type` 值，引擎最终决定调用 `${dynamic-job-type}` 任务
+
 ```json
 {
     "nodeName":"审核人1",
@@ -96,10 +103,10 @@
 }
 ```
 
-
 #### 2.2 `exclusiveGateway`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/exclusive-gateways/exclusive-gateways](https://docs.camunda.io/docs/reference/bpmn-processes/exclusive-gateways/exclusive-gateways)
-> 
+>
 > 对于 parallelGateWay/exclusiveGateway 类型，目前建议设置 nextNode 的 nodeType 类型一一对应
 
 ```json
@@ -136,7 +143,9 @@
     ]
 }
 ```
+
 #### 2.3 `parallelGateway`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/parallel-gateways/parallel-gateways](https://docs.camunda.io/docs/reference/bpmn-processes/parallel-gateways/parallel-gateways)
 
 ```json
@@ -180,7 +189,9 @@
     ]
 }
 ```
+
 #### 2.4 `subProcess`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/embedded-subprocesses/embedded-subprocesses](https://docs.camunda.io/docs/reference/bpmn-processes/embedded-subprocesses/embedded-subprocesses)
 
 ```json
@@ -201,7 +212,9 @@
      }
 }
 ```
+
 #### 2.5 `callActivity`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/call-activities/call-activities](https://docs.camunda.io/docs/reference/bpmn-processes/call-activities/call-activities)
 
 - `processId` 若不带 `=` 前缀，则默认会拼接 `namespace`
@@ -214,6 +227,7 @@
       - 引擎最终会去调用 `call-process-id` 这个流程
     - 动态变量，由流程变量决定: `processId: '=dynamic-process-id'`
       - 根据流程变量中 `dynamic-process-id` 值，引擎最终决定调用哪个流程
+
 ```json
 {
     "nodeName":"审核人3.1",
@@ -228,7 +242,9 @@
         }
 }
 ```
+
 #### 2.6 `sendTask`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/send-tasks/send-tasks](https://docs.camunda.io/docs/reference/bpmn-processes/send-tasks/send-tasks)
 >
 > Jobs for send tasks are not processed by Zeebe itself. In order to process them, you need to provide a job worker.
@@ -248,7 +264,9 @@
     "nextNode": null
 }
 ```
+
 #### 2.7 `receiveTask`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/receive-tasks/receive-tasks#messages](https://docs.camunda.io/docs/reference/bpmn-processes/receive-tasks/receive-tasks#messages)
 >
 > 当发布消息时， 消息名称 `messageName`和关联键 `correlationKey` 与订阅匹配时，该消息将关联到相应的流程实例。如果没有打开适当的订阅，则消息将被丢弃。
@@ -257,6 +275,7 @@
 - `correlationKey` 关联键
   - 静态变量 `="test-correlation-key"`
   - 动态变量 `=dynamic-test-correlation-key` ，`${dynamic-test-correlation-key}` 从全局变量中取， 若全局变量中不存在， 则报错。
+
 ```json
 {
   "nodeName":"接收任务",
@@ -266,11 +285,13 @@
   "nextNode": null
 }
 ```
+
 #### 2.8 `scriptTask`
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/script-tasks/script-tasks](https://docs.camunda.io/docs/reference/bpmn-processes/script-tasks/script-tasks)
 >
 > Jobs for script tasks are not processed by Zeebe itself. In order to process them, you need to provide a job worker.
-> 
+>
 > [https://github.com/camunda-community-hub/zeebe-script-worker](https://github.com/camunda-community-hub/zeebe-script-worker)
 
 ```json
@@ -286,7 +307,9 @@
     "nextNode": null
 }
 ```
+
 #### 2.9 businessRuleTask
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/business-rule-tasks/business-rule-tasks](https://docs.camunda.io/docs/reference/bpmn-processes/business-rule-tasks/business-rule-tasks)
 >
 > Jobs for business rule tasks are not processed by Zeebe itself. In order to process them, you need to provide a job worker.
@@ -305,12 +328,15 @@
     "nextNode": null
 }
 ```
+
 #### 2.10 intermediateCatchEvent
+
 > [https://docs.camunda.io/docs/reference/bpmn-processes/message-events/message-events#intermediate-message-catch-events](https://docs.camunda.io/docs/reference/bpmn-processes/message-events/message-events#intermediate-message-catch-events)
 >
 > [https://docs.camunda.io/docs/reference/bpmn-processes/timer-events/timer-events#intermediate-timer-catch-events](https://docs.camunda.io/docs/reference/bpmn-processes/timer-events/timer-events#intermediate-timer-catch-events)
 
 - `Intermediate timer catch events`
+
 ```json
 {
     "nodeName":"延时器",
@@ -322,6 +348,7 @@
 ```
 
 - `Intermediate message catch events`[#](#tHnQD)
+
 ```json
 {
     "nodeName":"延时器",
@@ -333,19 +360,21 @@
 }
 ```
 
-
 ### 3. 示例
+
 #### 3.1 pom 依赖
+
 ```xml
 <dependency>
   <groupId>cn.lzgabel.converter</groupId>
   <artifactId>camunda-cloud-bpmn-converter</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
 - `demo`: 更多细节，请查看测试类 `BpmnBuilderTest`
   - 通过传入 `json` 串
+
 ```java
 public class Main {
   public static void main(String[] args) throws IOException {
@@ -389,6 +418,7 @@ public class Main {
 ```
 
 - `sdk` 直接定义
+
 ```java
 public class Main {
   public static void main(String[] args) throws IOException {
@@ -419,3 +449,4 @@ public class Main {
   }   
 }
 ```
+

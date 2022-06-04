@@ -7,27 +7,28 @@ package cn.lzgabel.converter.bean.event.start;
  * @author lizhi
  * @since 1.0.0
  */
-
 public enum EventType {
 
-    /**
-     * timer event
-     */
-    TIMER("timer"),
+  /** none event */
+  NONE("none"),
 
-    /**
-     * message event
-     */
-    MESSAGE("message");
+  /** timer event */
+  TIMER("timer"),
 
-    private String value;
+  /** message event */
+  MESSAGE("message");
 
-    EventType(String value) {
-        this.value = value;
-    }
+  private String value;
 
-    public boolean isEqual(String value) {
-        return this.value.equals(value);
-    }
+  EventType(String value) {
+    this.value = value;
+  }
 
+  public String value() {
+    return value;
+  }
+
+  public boolean isEqual(String value) {
+    return this.value.equals(value);
+  }
 }

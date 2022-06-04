@@ -1,8 +1,9 @@
 package cn.lzgabel.converter.bean.task;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import com.alibaba.fastjson.JSONObject;
+import java.util.Map;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
@@ -13,16 +14,14 @@ import lombok.experimental.SuperBuilder;
  * @author lizhi
  * @since 1.0.0
  */
-
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public abstract class JobWorkerDefinition extends BaseDefinition {
 
-  @NonNull
-  private String jobType;
+  @NonNull private String jobType;
 
   private String jobRetries = "3";
 
-  public JSONObject taskHeaders;
-
+  public Map<String, String> taskHeaders;
 }

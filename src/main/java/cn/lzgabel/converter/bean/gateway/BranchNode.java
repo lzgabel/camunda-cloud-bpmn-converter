@@ -2,6 +2,7 @@ package cn.lzgabel.converter.bean.gateway;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -11,15 +12,14 @@ import lombok.experimental.SuperBuilder;
  * @author lizhi
  * @since 1.0.0
  */
-
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public class BranchNode {
 
-    private String nodeName;
+  private String nodeName;
 
-    private String conditionExpression;
+  private String conditionExpression;
 
-    private BaseDefinition nextNode;
-
+  private BaseDefinition nextNode;
 }

@@ -1,6 +1,8 @@
 package cn.lzgabel.converter.bean.gateway;
 
+import cn.lzgabel.converter.bean.BpmnElementType;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -10,13 +12,13 @@ import lombok.experimental.SuperBuilder;
  * @author lizhi
  * @since 1.0.0
  */
-
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public class ParallelGatewayDefinition extends GatewayDefinition {
 
   @Override
   public String getNodeType() {
-    return "parallelGateway";
+    return BpmnElementType.PARALLEL_GATEWAY.getElementTypeName().get();
   }
 }

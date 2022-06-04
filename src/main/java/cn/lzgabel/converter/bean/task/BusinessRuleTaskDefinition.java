@@ -1,6 +1,8 @@
 package cn.lzgabel.converter.bean.task;
 
+import cn.lzgabel.converter.bean.BpmnElementType;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -10,13 +12,13 @@ import lombok.experimental.SuperBuilder;
  * @author lizhi
  * @since 1.0.0
  */
-
 @Data
 @SuperBuilder
+@NoArgsConstructor
 public class BusinessRuleTaskDefinition extends JobWorkerDefinition {
 
   @Override
   public String getNodeType() {
-    return "businessRuleTask";
+    return BpmnElementType.BUSINESS_RULE_TASK.getElementTypeName().get();
   }
 }
