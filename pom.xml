@@ -3,12 +3,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.camunda.community</groupId>
-    <artifactId>community-hub-release-parent</artifactId>
-    <version>1.2.2</version>
-  </parent>
-
   <groupId>cn.lzgabel.converter</groupId>
   <artifactId>camunda-cloud-bpmn-converter</artifactId>
   <version>1.0.3-SNAPSHOT</version>

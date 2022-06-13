@@ -28,14 +28,14 @@ jobs:
         with:
           java-version: 8
           distribution: temurin
-          gpg-private-key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
-          gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
-      - if: github.event.release || github.event_name == 'workflow_dispatch'
+      - if: github.event.release || github.event_name == 'release'
         name: Publish to Maven Central Repo
         uses: samuelmeuli/action-maven-publish@v1
         with:
-          gpg_private_key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
-          gpg_passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+          gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           nexus_username: ${{ secrets.NEXUS_USR }}
           nexus_password: ${{ secrets.NEXUS_PSW }}
