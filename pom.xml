@@ -58,7 +58,7 @@
     <plugin.version.spotless>2.22.4</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
-    <zeebe.version>8.0.1</zeebe.version>
+    <zeebe.version>8.0.3</zeebe.version>
   </properties>
 
   <dependencies>
