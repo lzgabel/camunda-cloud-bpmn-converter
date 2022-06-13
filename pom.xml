@@ -58,7 +58,7 @@
     <plugin.version.spotless>2.22.4</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
-    <zeebe.version>8.0.1</zeebe.version>
+    <zeebe.version>8.0.3</zeebe.version>
   </properties>
 
   <dependencies>
@@ -75,7 +75,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.10</version>
+      <version>3.12.0</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
