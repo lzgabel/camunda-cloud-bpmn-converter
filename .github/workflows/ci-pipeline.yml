@@ -1,0 +1,42 @@
+# If this workflow is triggered by a push to $default_branch, it
+#        deploys a SNAPSHOT
+# If this workflow is triggered by publishing a Release, it
+#        deploys a RELEASE with the selected version
+#        updates the project version by incrementing the patch version
+#        commits the version update change to the repository's default branch ($default_branch).
+name: Build, test and deploy artifacts with Maven
+on:
+  pull_request: { }
+  push: { }
+  workflow_dispatch: { }
+  release:
+    types: [ published ]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3.0.2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up Java environment
+        uses: actions/setup-java@v3
+        with:
+          java-version: 1.8
+          server-id: sonatype-nexus-staging
+          server-username: ${{ secrets.OSSRH_USER }}
+          server-password: ${{ secrets.OSSRH_PASSWORD }}
+          gpg-passphrase:  ${{ secrets.GPG_PASSWORD }}
+
+      - if: github.event.release || github.event_name == 'workflow_dispatch'
+        name: Publish to Maven Central Repo
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          gpg_private_key: ${{ secrets.GPG_SECRET }}
+          gpg_passphrase: ${{ secrets.GPG_PASSWORD }}
+          nexus_username: ${{ secrets.OSSRH_USER }}
+          nexus_password: ${{ secrets.OSSRH_PASSWORD }}
