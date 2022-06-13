@@ -23,18 +23,16 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Set up Java environment
-        uses: actions/setup-java@v3
+      - name: Set up Maven Central Repository
+        uses: actions/setup-java@v1
         with:
-          distribution: 'adopt'
-          java-version: '8'
+          java-version: 1.8
           server-id: sonatype-nexus-staging
           server-username: ${{ secrets.OSSRH_USER }}
           server-password: ${{ secrets.OSSRH_PASSWORD }}
           gpg-passphrase:  ${{ secrets.GPG_PASSWORD }}
-
       - if: github.event.release || github.event_name == 'workflow_dispatch'
-        name: Publish to Maven Central Repo
+        name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1
         with:
           gpg_private_key: ${{ secrets.GPG_SECRET }}
