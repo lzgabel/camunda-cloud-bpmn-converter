@@ -1,0 +1,59 @@
+# If this workflow is triggered by a push to $default_branch, it
+#        deploys a SNAPSHOT
+# If this workflow is triggered by publishing a Release, it
+#        deploys a RELEASE with the selected version
+#        updates the project version by incrementing the patch version
+#        commits the version update change to the repository's default branch ($default_branch).
+name: Build, test and deploy artifacts with Maven
+on:
+  pull_request: { }
+  push: { }
+  workflow_dispatch:
+    inputs:
+      maven-additional-options:
+        description: Any extra Maven options
+        required: false
+        default: ""
+  release:
+    types: [ published ]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3.0.2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up Java environment
+        uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: temurin
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+      - if: github.event.release || github.event_name == 'workflow_dispatch'
+        name: Publish to Maven Central Repo
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          maven-additional-options: ""
+          gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          nexus_username: ${{ secrets.NEXUS_USR }}
+          nexus_password: ${{ secrets.NEXUS_PSW }}
+      - if: github.event.release || github.event_name == 'workflow_dispatch'
+        name: Initialize
+        run: |-
+            echo Repo: ${GITHUB_REPOSITORY}
+            git config --global user.name "Release Bot"
+            git config --global user.email actions@github.com
+        shell: bash
+      - if: github.event.release || github.event_name == 'workflow_dispatch'
+        name: Prepare next development version
+        run: |
+          chmod +x .github/prepare-next-development-version.sh
+          .github/prepare-next-development-version.sh "${{ github.event.repository.default_branch }}" "${{ github.event.release.tag_name }}" "${{ inputs.maven-additional-options }}"
+        shell: bash
