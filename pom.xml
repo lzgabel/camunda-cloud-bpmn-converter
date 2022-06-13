@@ -47,13 +47,13 @@
   <distributionManagement>
 
     <repository>
-      <id>maven_nexus_repo</id>
-      <name>maven_nexus_repo</name>
+      <id>ossrh</id>
+      <name>ossrh</name>
       <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
     </repository>
     <snapshotRepository>
-      <id>maven_nexus_repo</id>
-      <name>maven_nexus_repo</name>
+      <id>ossrh</id>
+      <name>ossrh</name>
       <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>

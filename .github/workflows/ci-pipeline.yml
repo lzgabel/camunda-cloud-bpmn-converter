@@ -30,26 +30,12 @@ jobs:
           distribution: temurin
           gpg-private-key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-      - name: Configure GPG Key
-          run: |
-            mkdir -p ~/.gnupg/
-            printf "$MAVEN_GPG_PRIVATE_KEY" | base64 --decode > ~/.gnupg/private.key
-            gpg --batch --import ~/.gnupg/private.key
-          env:
-            MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
-      - name: Build
-        id: build
-        run: mvn -B -U -Dsurefire.rerunFailingTestsCount=5 clean install
+
       - if: github.event.release || github.event_name == 'workflow_dispatch'
-        name: Deploy SNAPSHOT / Release
-        uses: camunda-community-hub/community-action-maven-release@v1
+        name: Publish to Maven Central Repo
+        uses: samuelmeuli/action-maven-publish@v1
         with:
-          release-version: ${{ github.event.release.tag_name }}
-          release-profile: community-action-maven-release
-          nexus-usr: ${{ secrets.NEXUS_USR }}
-          nexus-psw: ${{ secrets.NEXUS_PSW }}
-          maven-usr: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-          maven-psw: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
-          maven-gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-        id: release
+          gpg_private_key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
+          gpg_passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+          nexus_username: ${{ secrets.NEXUS_USR }}
+          nexus_password: ${{ secrets.NEXUS_PSW }}
