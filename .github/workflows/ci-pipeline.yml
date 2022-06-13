@@ -23,13 +23,6 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Configure GPG Key
-          run: |
-            mkdir -p ~/.gnupg/
-            printf "$MAVEN_GPG_PRIVATE_KEY" | base64 --decode > ~/.gnupg/private.key
-            gpg --batch --import ~/.gnupg/private.key
-          env:
-            MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
       - name: Set up Java environment
         uses: actions/setup-java@v3
         with:
@@ -37,6 +30,13 @@ jobs:
           distribution: temurin
           gpg-private-key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+      - name: Configure GPG Key
+          run: |
+            mkdir -p ~/.gnupg/
+            printf "$MAVEN_GPG_PRIVATE_KEY" | base64 --decode > ~/.gnupg/private.key
+            gpg --batch --import ~/.gnupg/private.key
+          env:
+            MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
       - name: Build
         id: build
         run: mvn -B -U -Dsurefire.rerunFailingTestsCount=5 clean install
