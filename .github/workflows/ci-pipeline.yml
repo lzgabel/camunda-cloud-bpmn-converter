@@ -23,13 +23,13 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-#      - name: Configure GPG Key
-#          run: |
-#            mkdir -p ~/.gnupg/
-#            printf "$MAVEN_GPG_PRIVATE_KEY" | base64 --decode > ~/.gnupg/private.key
-#            gpg --batch --import ~/.gnupg/private.key
-#          env:
-#            MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
+      - name: Configure GPG Key
+          run: |
+            mkdir -p ~/.gnupg/
+            printf "$MAVEN_GPG_PRIVATE_KEY" | base64 --decode > ~/.gnupg/private.key
+            gpg --batch --import ~/.gnupg/private.key
+          env:
+            MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
       - name: Set up Java environment
         uses: actions/setup-java@v3
         with:
@@ -53,13 +53,3 @@ jobs:
           maven-gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
         id: release
-      - if: github.event.release
-        name: Attach artifacts to GitHub Release (Release only)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.release.outputs.artifacts_archive_path }}
-          asset_name: ${{ steps.release.outputs.artifacts_archive_path }}
-          asset_content_type: application/zip
