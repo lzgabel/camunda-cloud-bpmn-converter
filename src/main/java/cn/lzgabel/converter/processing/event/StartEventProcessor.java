@@ -60,7 +60,8 @@ public class StartEventProcessor
       if (EventType.TIMER.isEqual(eventType)) {
         TimerStartEventDefinition timer = (TimerStartEventDefinition) definition;
         consumers
-            .getOrDefault(TimerDefinitionType.timerDefinitionOf(timer.getTimerDefinitionType()), EMPTY)
+            .getOrDefault(
+                TimerDefinitionType.timerDefinitionOf(timer.getTimerDefinitionType()), EMPTY)
             .accept(start, timer);
       } else if (EventType.MESSAGE.isEqual(eventType)) {
         MessageStartEventDefinition message = (MessageStartEventDefinition) definition;
