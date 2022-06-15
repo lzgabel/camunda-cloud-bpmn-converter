@@ -4,7 +4,7 @@
 
   <groupId>cn.lzgabel.converter</groupId>
   <artifactId>camunda-cloud-bpmn-converter</artifactId>
-  <version>1.0.5</version>
+  <version>1.0.6-SNAPSHOT</version>
 
   <name>camunda-cloud-bpmn-converter</name>
   <description>Convert json to bpmn for Camunda Cloud.</description>
