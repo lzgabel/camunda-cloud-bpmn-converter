@@ -20,23 +20,26 @@ public class CallActivityProcessor
     implements BpmnElementProcessor<CallActivityDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, CallActivityDefinition flowNode)
+  public String onComplete(
+      AbstractFlowNodeBuilder flowNodeBuilder, CallActivityDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
     CallActivityBuilder callActivityBuilder = flowNodeBuilder.callActivity();
-    callActivityBuilder.getElement().setName(flowNode.getNodeName());
+    callActivityBuilder.getElement().setName(definition.getNodeName());
     callActivityBuilder.addExtensionElement(
         ZeebeCalledElement.class,
         (ZeebeCalledElement zeebeCalledElement) -> {
-          zeebeCalledElement.setProcessId(flowNode.getProcessId());
+          zeebeCalledElement.setProcessId(definition.getProcessId());
           zeebeCalledElement.setPropagateAllChildVariablesEnabled(
-              flowNode.isPropagateAllChildVariablesEnabled());
+              definition.isPropagateAllChildVariablesEnabled());
           callActivityBuilder.addExtensionElement(zeebeCalledElement);
         });
     String id = callActivityBuilder.getElement().getId();
-    BaseDefinition childNode = flowNode.getNextNode();
+    BaseDefinition childNode = definition.getNextNode();
+
     if (Objects.nonNull(childNode)) {
       return onCreate(moveToNode(callActivityBuilder, id), childNode);
     }
+
     return id;
   }
 }

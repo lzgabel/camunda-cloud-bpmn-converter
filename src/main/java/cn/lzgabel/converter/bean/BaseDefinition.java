@@ -33,25 +33,51 @@ import lombok.experimental.SuperBuilder;
     visible = true)
 @JsonSubTypes({
   // event
-  @JsonSubTypes.Type(value = StartEventDefinition.class, name = "startEvent"),
-  @JsonSubTypes.Type(value = EndEventDefinition.class, name = "endEvent"),
+  @JsonSubTypes.Type(
+      value = StartEventDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.START_EVENT),
+  @JsonSubTypes.Type(
+      value = EndEventDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.END_EVENT),
 
   // task
-  @JsonSubTypes.Type(value = UserTaskDefinition.class, name = "userTask"),
-  @JsonSubTypes.Type(value = ServiceTaskDefinition.class, name = "serviceTask"),
-  @JsonSubTypes.Type(value = SendTaskDefinition.class, name = "sendTask"),
-  @JsonSubTypes.Type(value = ScriptTaskDefinition.class, name = "scriptTask"),
-  @JsonSubTypes.Type(value = ReceiveTaskDefinition.class, name = "receiveTask"),
-  @JsonSubTypes.Type(value = ManualTaskDefinition.class, name = "manualTask"),
-  @JsonSubTypes.Type(value = BusinessRuleTaskDefinition.class, name = "businessRuleTask"),
+  @JsonSubTypes.Type(
+      value = UserTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.USER_TASK),
+  @JsonSubTypes.Type(
+      value = ServiceTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.SERVICE_TASK),
+  @JsonSubTypes.Type(
+      value = SendTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.SEND_TASK),
+  @JsonSubTypes.Type(
+      value = ScriptTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.SCRIPT_TASK),
+  @JsonSubTypes.Type(
+      value = ReceiveTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.RECEIVE_TASK),
+  @JsonSubTypes.Type(
+      value = ManualTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.MANUAL_TASK),
+  @JsonSubTypes.Type(
+      value = BusinessRuleTaskDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.BUSINESS_RULE_TASK),
 
   // sub process
-  @JsonSubTypes.Type(value = CallActivityDefinition.class, name = "callActivity"),
-  @JsonSubTypes.Type(value = SubProcessDefinition.class, name = "subProcess"),
+  @JsonSubTypes.Type(
+      value = CallActivityDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.CALL_ACTIVITY),
+  @JsonSubTypes.Type(
+      value = SubProcessDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.SUBP_ROCESS),
 
   // gateway
-  @JsonSubTypes.Type(value = ParallelGatewayDefinition.class, name = "parallelGateway"),
-  @JsonSubTypes.Type(value = ExclusiveGatewayDefinition.class, name = "exclusiveGateway"),
+  @JsonSubTypes.Type(
+      value = ParallelGatewayDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.PARALLEL_GATEWAY),
+  @JsonSubTypes.Type(
+      value = ExclusiveGatewayDefinition.class,
+      name = BpmnElementType.BpmnElementTypeName.EXCLUSIVE_GATEWAY),
 
   // catch event
   @JsonSubTypes.Type(

@@ -24,18 +24,18 @@ public interface BpmnElementProcessor<
    * 创建新的节点
    *
    * @param flowNodeBuilder builder
-   * @param flowNode 流程节点参数
+   * @param definition 流程节点参数
    * @return 最后一个节点id
    * @throws InvocationTargetException invocationTargetException
    * @throws IllegalAccessException illegalAccessException
    */
-  default String onCreate(AbstractFlowNodeBuilder flowNodeBuilder, BaseDefinition flowNode)
+  default String onCreate(AbstractFlowNodeBuilder flowNodeBuilder, BaseDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    String nodeType = flowNode.getNodeType();
+    String nodeType = definition.getNodeType();
     BpmnElementType elementType = BpmnElementType.bpmnElementTypeFor(nodeType);
     BpmnElementProcessor<BaseDefinition, AbstractBaseElementBuilder> processor =
         BpmnElementProcessors.getProcessor(elementType);
-    return processor.onComplete(flowNodeBuilder, flowNode);
+    return processor.onComplete(flowNodeBuilder, definition);
   }
 
   /**

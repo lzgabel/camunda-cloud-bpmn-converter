@@ -20,12 +20,13 @@ public class ReceiveTaskProcessor
     implements BpmnElementProcessor<ReceiveTaskDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, ReceiveTaskDefinition flowNode)
+  public String onComplete(
+      AbstractFlowNodeBuilder flowNodeBuilder, ReceiveTaskDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    String nodeType = flowNode.getNodeType();
-    String nodeName = flowNode.getNodeName();
-    String messageName = flowNode.getMessageName();
-    String messageCorrelationKey = flowNode.getCorrelationKey();
+    String nodeType = definition.getNodeType();
+    String nodeName = definition.getNodeName();
+    String messageName = definition.getMessageName();
+    String messageCorrelationKey = definition.getCorrelationKey();
 
     // 创建 ReceiveTask
     ReceiveTask receiveTask = (ReceiveTask) createInstance(flowNodeBuilder, nodeType);
@@ -53,7 +54,7 @@ public class ReceiveTaskProcessor
             });
 
     // 如果当前任务还有后续任务，则遍历创建后续任务
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       return onCreate(moveToNode(flowNodeBuilder, id), nextNode);
     } else {

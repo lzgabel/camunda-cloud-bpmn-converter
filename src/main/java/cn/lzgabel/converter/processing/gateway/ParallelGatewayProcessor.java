@@ -25,12 +25,12 @@ public class ParallelGatewayProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, ParallelGatewayDefinition flowNode)
+      AbstractFlowNodeBuilder flowNodeBuilder, ParallelGatewayDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    String name = flowNode.getNodeName();
+    String name = definition.getNodeName();
     ParallelGatewayBuilder parallelGatewayBuilder = flowNodeBuilder.parallelGateway().name(name);
-    List<BranchNode> branchNodes = flowNode.getBranchNodes();
-    if (CollectionUtils.isEmpty(branchNodes) && Objects.isNull(flowNode.getNextNode())) {
+    List<BranchNode> branchNodes = definition.getBranchNodes();
+    if (CollectionUtils.isEmpty(branchNodes) && Objects.isNull(definition.getNextNode())) {
       return parallelGatewayBuilder.getElement().getId();
     }
 
@@ -51,7 +51,7 @@ public class ParallelGatewayProcessor
     }
 
     String id = parallelGatewayBuilder.getElement().getId();
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       nextNode.setIncoming(incoming);
       return merge(parallelGatewayBuilder, id, Collections.emptyList(), nextNode);

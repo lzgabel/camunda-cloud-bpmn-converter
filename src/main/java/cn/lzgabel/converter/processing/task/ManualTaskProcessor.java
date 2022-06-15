@@ -19,17 +19,17 @@ public class ManualTaskProcessor
     implements BpmnElementProcessor<ManualTaskDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, ManualTaskDefinition flowNode)
+  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, ManualTaskDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
 
-    String nodeType = flowNode.getNodeType();
-    String nodeName = flowNode.getNodeName();
+    String nodeType = definition.getNodeType();
+    String nodeName = definition.getNodeName();
     ManualTask manualTask = (ManualTask) createInstance(flowNodeBuilder, nodeType);
     String id = manualTask.getId();
     manualTask.setName(nodeName);
 
     // 如果当前任务还有后续任务，则遍历创建后续任务
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       return onCreate(moveToNode(flowNodeBuilder, id), nextNode);
     } else {

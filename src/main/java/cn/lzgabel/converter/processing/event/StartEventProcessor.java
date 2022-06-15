@@ -7,7 +7,9 @@ import cn.lzgabel.converter.processing.BpmnElementProcessor;
 import cn.lzgabel.converter.processing.BpmnElementProcessors;
 import io.camunda.zeebe.model.bpmn.builder.StartEventBuilder;
 import java.lang.reflect.InvocationTargetException;
+import java.util.EnumMap;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -20,37 +22,55 @@ import org.apache.commons.lang3.StringUtils;
 public class StartEventProcessor
     implements BpmnElementProcessor<StartEventDefinition, StartEventBuilder> {
 
+  private static final BiConsumer<StartEventBuilder, TimerStartEventDefinition> EMPTY =
+      (start, definition) -> {};
+  private static final EnumMap<
+          TimerDefinitionType, BiConsumer<StartEventBuilder, TimerStartEventDefinition>>
+      consumers = new EnumMap<>(TimerDefinitionType.class);
+
+  static {
+    consumers.put(
+        TimerDefinitionType.DATE,
+        (start, definition) -> {
+          String timerDefinition = definition.getTimerDefinition();
+          start.timerWithDate(timerDefinition);
+        });
+    consumers.put(
+        TimerDefinitionType.DURATION,
+        (start, definition) -> {
+          String timerDefinition = definition.getTimerDefinition();
+          start.timerWithDuration(timerDefinition);
+        });
+    consumers.put(
+        TimerDefinitionType.CYCLE,
+        (start, definition) -> {
+          String timerDefinition = definition.getTimerDefinition();
+          start.timerWithCycle(timerDefinition);
+        });
+  }
+
   @Override
-  public String onComplete(StartEventBuilder start, StartEventDefinition flowNode)
+  public String onComplete(StartEventBuilder start, StartEventDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
     // 事件类型 timer/message 默认：none
-    String eventType = flowNode.getEventType();
-    String nodeName = flowNode.getNodeName();
+    String eventType = definition.getEventType();
+    String nodeName = definition.getNodeName();
     start.name(nodeName);
     if (StringUtils.isNotBlank(eventType)) {
       if (EventType.TIMER.isEqual(eventType)) {
-        TimerStartEventDefinition timer = (TimerStartEventDefinition) flowNode;
-        // timer 定义类型： date/cycle/duration
-        String timerDefinitionType = timer.getTimerDefinitionType();
-        if (TimerDefinitionType.DATE.isEqual(timerDefinitionType)) {
-          String timerDefinition = timer.getTimerDefinition();
-          start.timerWithDate(timerDefinition);
-        } else if (TimerDefinitionType.DURATION.isEqual(timerDefinitionType)) {
-          String timerDefinition = timer.getTimerDefinition();
-          start.timerWithDuration(timerDefinition);
-        } else if (TimerDefinitionType.CYCLE.isEqual(timerDefinitionType)) {
-          String timerDefinition = timer.getTimerDefinition();
-          start.timerWithCycle(timerDefinition);
-        }
+        TimerStartEventDefinition timer = (TimerStartEventDefinition) definition;
+        consumers
+            .getOrDefault(TimerDefinitionType.timerDefinitionOf(timer.getTimerDefinitionType()), EMPTY)
+            .accept(start, timer);
       } else if (EventType.MESSAGE.isEqual(eventType)) {
-        MessageStartEventDefinition message = (MessageStartEventDefinition) flowNode;
+        MessageStartEventDefinition message = (MessageStartEventDefinition) definition;
         String messageName = message.getMessageName();
         start.message(messageName);
       }
     }
 
     String id = start.getElement().getId();
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.isNull(nextNode)) {
       return id;
     }

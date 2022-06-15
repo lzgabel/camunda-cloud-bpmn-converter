@@ -20,12 +20,12 @@ public class IntermediateCatchEventProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, IntermediateCatchEventDefinition flowNode) {
-    String nodeName = flowNode.getNodeName();
-    String eventType = flowNode.getEventType();
+      AbstractFlowNodeBuilder flowNodeBuilder, IntermediateCatchEventDefinition definition) {
+    String nodeName = definition.getNodeName();
+    String eventType = definition.getEventType();
     if (EventType.TIMER.isEqual(eventType)) {
       TimerIntermediateCatchEventDefinition timer =
-          (TimerIntermediateCatchEventDefinition) flowNode;
+          (TimerIntermediateCatchEventDefinition) definition;
       String timerDefinition = timer.getTimerDefinition();
       return flowNodeBuilder
           .intermediateCatchEvent()
@@ -34,7 +34,7 @@ public class IntermediateCatchEventProcessor
           .getId();
     } else if (EventType.MESSAGE.isEqual(eventType)) {
       MessageIntermediateCatchEventDefinition message =
-          (MessageIntermediateCatchEventDefinition) flowNode;
+          (MessageIntermediateCatchEventDefinition) definition;
       String messageName = message.getMessageName();
       String messageCorrelationKey = message.getCorrelationKey();
       if (StringUtils.isBlank(messageName) || StringUtils.isBlank(messageCorrelationKey)) {

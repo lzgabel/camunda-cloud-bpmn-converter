@@ -24,13 +24,13 @@ public class ExclusiveGatewayProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, ExclusiveGatewayDefinition flowNode)
+      AbstractFlowNodeBuilder flowNodeBuilder, ExclusiveGatewayDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
     ExclusiveGatewayBuilder exclusiveGatewayBuilder =
-        flowNodeBuilder.exclusiveGateway().name(flowNode.getNodeName());
-    List<BranchNode> branchNodes = flowNode.getBranchNodes();
-    if (CollectionUtils.isEmpty(flowNode.getBranchNodes())
-        && Objects.isNull(flowNode.getNextNode())) {
+        flowNodeBuilder.exclusiveGateway().name(definition.getNodeName());
+    List<BranchNode> branchNodes = definition.getBranchNodes();
+    if (CollectionUtils.isEmpty(definition.getBranchNodes())
+        && Objects.isNull(definition.getNextNode())) {
       return exclusiveGatewayBuilder.getElement().getId();
     }
     List<String> incoming = Lists.newArrayListWithCapacity(branchNodes.size());
@@ -43,15 +43,15 @@ public class ExclusiveGatewayProcessor
       String nodeName = branchNode.getNodeName();
       String expression = branchNode.getConditionExpression();
 
-      // 记录分支条件中不存在任务节点的情况（即空分支: 见 branchNode-2）
+      // 记录分支条件中不存在任务节点的, 后续视情况补充对应的条件表达式, （见 branch-2）
       // ------------------------
       //
-      //            --(branchNode-1)--> serviceTask(current) --> serviceTask  --
-      // gateway -->                                                            --> gateway(merge)
-      // --> serviceTask(nextNode)
-      //            --(branchNode-2)-->  -----------------------------------  --
       //
+      //           -(branch-1)-> serviceTask --
+      // gateway ->                            -> gateway(merge) -> serviceTask(nextNode)
+      //           -(branch-2)-> ----------- --
       //
+      // ------------------------
       if (Objects.isNull(nextNode)) {
         incoming.add(exclusiveGatewayBuilder.getElement().getId());
         BranchNode condition =
@@ -75,7 +75,7 @@ public class ExclusiveGatewayProcessor
     }
 
     String id = exclusiveGatewayBuilder.getElement().getId();
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       nextNode.setIncoming(incoming);
       return merge(exclusiveGatewayBuilder, id, emptyNextNodeBranchNodes, nextNode);

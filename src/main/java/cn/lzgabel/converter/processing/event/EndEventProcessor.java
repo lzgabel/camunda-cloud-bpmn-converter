@@ -15,7 +15,7 @@ public class EndEventProcessor
     implements BpmnElementProcessor<EndEventDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder builder, EndEventDefinition flowNode) {
+  public String onComplete(AbstractFlowNodeBuilder builder, EndEventDefinition definition) {
     return builder.endEvent().getElement().getId();
   }
 }

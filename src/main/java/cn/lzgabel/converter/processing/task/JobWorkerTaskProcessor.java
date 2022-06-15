@@ -25,13 +25,13 @@ public abstract class JobWorkerTaskProcessor<
     implements BpmnElementProcessor<E, T> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, JobWorkerDefinition flowNode)
+  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, JobWorkerDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
 
-    String nodeType = flowNode.getNodeType();
-    String nodeName = flowNode.getNodeName();
-    String jobType = flowNode.getJobType();
-    String jobRetries = flowNode.getJobRetries();
+    String nodeType = definition.getNodeType();
+    String nodeName = definition.getNodeName();
+    String jobType = definition.getJobType();
+    String jobRetries = definition.getJobRetries();
 
     // 创建 Task
     AbstractJobWorkerTaskBuilder<?, Task> jobWorkerTaskBuilder =
@@ -40,10 +40,10 @@ public abstract class JobWorkerTaskProcessor<
 
     // 补充 header
     handleJobWorkerTask(
-        jobWorkerTaskBuilder, nodeName, jobType, jobRetries, flowNode.getTaskHeaders());
+        jobWorkerTaskBuilder, nodeName, jobType, jobRetries, definition.getTaskHeaders());
 
     // 如果当前任务还有后续任务，则遍历创建后续任务
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       return onCreate(moveToNode(flowNodeBuilder, id), nextNode);
     } else {

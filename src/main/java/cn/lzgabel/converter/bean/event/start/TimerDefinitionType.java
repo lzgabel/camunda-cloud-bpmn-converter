@@ -1,5 +1,7 @@
 package cn.lzgabel.converter.bean.event.start;
 
+import java.util.Arrays;
+
 /**
  * 〈功能简述〉<br>
  * 〈〉
@@ -30,5 +32,12 @@ public enum TimerDefinitionType {
 
   public String value() {
     return this.value;
+  }
+
+  public static TimerDefinitionType timerDefinitionOf(String value) {
+    return Arrays.stream(values())
+        .filter(type -> type.isEqual(value))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("Unsupported type " + value));
   }
 }

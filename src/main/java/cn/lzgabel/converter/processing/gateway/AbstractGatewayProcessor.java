@@ -30,32 +30,31 @@ public abstract class AbstractGatewayProcessor<
       AbstractFlowNodeBuilder flowNodeBuilder,
       String fromId,
       List<BranchNode> conditions,
-      BaseDefinition flowNode)
+      BaseDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    List<String> incoming = flowNode.getIncoming();
+    List<String> incoming = definition.getIncoming();
 
     // ------------------------
     //
-    //            ---> serviceTask(current) --> serviceTask  --
-    // gateway -->                                             --> gateway(merge) -->
-    // serviceTask(nextNode)
-    //            -->  serviceTask          --> serviceTask  --
+    //          -> serviceTask(current)->serviceTask-
+    // gateway->                                     ->gateway(merge)->serviceTask(nextNode)
+    //          ->  serviceTask        ->serviceTask-
     //
     //
 
     // 继续沿新分支，创建新的元素类型(参见 current 所在分支))
     if (incoming == null || incoming.size() == 0) {
-      return onCreate(moveToNode(flowNodeBuilder, fromId), flowNode);
+      return onCreate(moveToNode(flowNodeBuilder, fromId), definition);
     } else {
       // 聚合节点所有入度边连接
-      flowNode.setIncoming(incoming);
+      definition.setIncoming(incoming);
 
       // 1.0 先对聚合节点进行所有的边连接(参见 merge), 临时暂存聚合节点 nextNode 后续节点(参见 nextNode)
-      BaseDefinition tempNextNode = flowNode.getNextNode();
-      flowNode.setNextNode(null);
+      BaseDefinition tempNextNode = definition.getNextNode();
+      definition.setNextNode(null);
 
       // 创建聚合节点(参见 merge)
-      String mergeId = onCreate(moveToNode(flowNodeBuilder, incoming.get(0)), flowNode);
+      String mergeId = onCreate(moveToNode(flowNodeBuilder, incoming.get(0)), definition);
       for (int i = 1; i < incoming.size(); i++) {
         moveToNode(flowNodeBuilder, incoming.get(i)).connectTo(mergeId);
       }

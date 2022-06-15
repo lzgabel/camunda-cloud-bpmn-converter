@@ -21,17 +21,17 @@ public class SubProcessProcessor
     implements BpmnElementProcessor<SubProcessDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, SubProcessDefinition flowNode)
+  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, SubProcessDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
     SubProcessBuilder subProcessBuilder = flowNodeBuilder.subProcess();
     EmbeddedSubProcessBuilder embeddedSubProcessBuilder = subProcessBuilder.embeddedSubProcess();
 
     // 子流程内部创建开始
     StartEventBuilder startEventBuilder = embeddedSubProcessBuilder.startEvent();
-    subProcessBuilder.getElement().setName(flowNode.getNodeName());
+    subProcessBuilder.getElement().setName(definition.getNodeName());
     String lastNode = startEventBuilder.getElement().getId();
     // 创建子流程节点
-    BaseDefinition childNode = flowNode.getChildNode();
+    BaseDefinition childNode = definition.getChildNode();
     if (Objects.nonNull(childNode)) {
       lastNode =
           onCreate(
@@ -42,7 +42,7 @@ public class SubProcessProcessor
 
     // 如果当前任务还有后续任务，则遍历创建后续任务
     String id = subProcessBuilder.getElement().getId();
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       return onCreate(moveToNode(subProcessBuilder, id), nextNode);
     }

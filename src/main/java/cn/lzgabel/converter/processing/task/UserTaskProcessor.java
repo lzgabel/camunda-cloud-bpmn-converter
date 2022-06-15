@@ -27,14 +27,14 @@ public class UserTaskProcessor
     implements BpmnElementProcessor<UserTaskDefinition, AbstractFlowNodeBuilder> {
 
   @Override
-  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, UserTaskDefinition flowNode)
+  public String onComplete(AbstractFlowNodeBuilder flowNodeBuilder, UserTaskDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
 
-    String nodeType = flowNode.getNodeType();
-    String nodeName = flowNode.getNodeName();
-    String assignee = flowNode.getAssignee();
-    String candidateGroups = flowNode.getCandidateGroups();
-    String userTaskForm = flowNode.getUserTaskForm();
+    String nodeType = definition.getNodeType();
+    String nodeName = definition.getNodeName();
+    String assignee = definition.getAssignee();
+    String candidateGroups = definition.getCandidateGroups();
+    String userTaskForm = definition.getUserTaskForm();
     // 创建 UserTask
     // 自动生成id
     Method createTarget = getDeclaredMethod(flowNodeBuilder, "createTarget", Class.class);
@@ -68,7 +68,7 @@ public class UserTaskProcessor
 
     // 补充 header
     Map<String, String> taskHeaders =
-        Optional.ofNullable(flowNode.getTaskHeaders()).orElse(Maps.newHashMap());
+        Optional.ofNullable(definition.getTaskHeaders()).orElse(Maps.newHashMap());
     taskHeaders.entrySet().stream()
         .filter(entry -> StringUtils.isNotBlank(entry.getKey()))
         .forEach(entry -> userTaskBuilder.zeebeTaskHeader(entry.getKey(), entry.getValue()));
@@ -79,14 +79,8 @@ public class UserTaskProcessor
     }
     String id = userTask.getId();
 
-    //            // 连接所有入度节点
-    //            for (int i = 1; i < incoming.size(); i++) {
-    //                abstractFlowNodeBuilder = moveToNode(flowNodeBuilder, incoming.get(i));
-    //                abstractFlowNodeBuilder.connectTo(id);
-    //            }
-
     // 如果当前任务还有后续任务，则遍历创建后续任务
-    BaseDefinition nextNode = flowNode.getNextNode();
+    BaseDefinition nextNode = definition.getNextNode();
     if (Objects.nonNull(nextNode)) {
       return onCreate(moveToNode(flowNodeBuilder, id), nextNode);
     } else {
