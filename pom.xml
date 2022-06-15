@@ -53,7 +53,7 @@
 
   <properties>
     <java.version>1.8</java.version>
-    <plugin.version.googlejavaformat>1.7</plugin.version.googlejavaformat>
+    <plugin.version.googlejavaformat>1.15.0</plugin.version.googlejavaformat>
     <plugin.version.spotless>2.22.4</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
