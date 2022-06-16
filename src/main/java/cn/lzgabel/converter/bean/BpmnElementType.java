@@ -19,7 +19,7 @@ public enum BpmnElementType {
 
   // Containers
   PROCESS(BpmnElementTypeName.PROCESS, Process.class),
-  SUB_PROCESS(BpmnElementTypeName.SUBP_ROCESS, SubProcess.class),
+  SUB_PROCESS(BpmnElementTypeName.SUB_PROCESS, SubProcess.class),
   EVENT_SUB_PROCESS(null, null),
 
   // Events
@@ -80,7 +80,7 @@ public enum BpmnElementType {
 
   public static class BpmnElementTypeName {
     static final String PROCESS = "process";
-    static final String SUBP_ROCESS = "subProcess";
+    static final String SUB_PROCESS = "subProcess";
     static final String START_EVENT = "startEvent";
     static final String INTERMEDIATE_CATCH_EVENT = "intermediateCatchEvent";
     static final String INTERMEDIATE_THROW_EVENT = "intermediateThrowEvent";

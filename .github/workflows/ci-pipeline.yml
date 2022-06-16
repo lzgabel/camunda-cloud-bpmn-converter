@@ -35,6 +35,22 @@ jobs:
           distribution: temurin
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+      - name: Build
+        id: build
+        run: mvn -B -U -Dsurefire.rerunFailingTestsCount=5 clean install
+      - name: Archive Test Results on Failure
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test-results
+          path: target/surefire-reports/
+          retention-days: 7
+      - name: Publish Unit Test Results
+        id: publish
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: failure()
+        with:
+          files: target/surefire-reports/*.xml
       - if: github.event.release || github.event_name == 'workflow_dispatch'
         name: Prepare release version
         run: mvn versions:set -DnewVersion=${{ github.event.release.tag_name }}

@@ -69,7 +69,7 @@ import lombok.experimental.SuperBuilder;
       name = BpmnElementType.BpmnElementTypeName.CALL_ACTIVITY),
   @JsonSubTypes.Type(
       value = SubProcessDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.SUBP_ROCESS),
+      name = BpmnElementType.BpmnElementTypeName.SUB_PROCESS),
 
   // gateway
   @JsonSubTypes.Type(
@@ -82,7 +82,7 @@ import lombok.experimental.SuperBuilder;
   // catch event
   @JsonSubTypes.Type(
       value = IntermediateCatchEventDefinition.class,
-      name = "intermediateCatchEvent")
+      name = BpmnElementType.BpmnElementTypeName.INTERMEDIATE_CATCH_EVENT)
 })
 public abstract class BaseDefinition implements Serializable {
 
