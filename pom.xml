@@ -57,7 +57,7 @@
     <plugin.version.spotless>2.22.8</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
-    <zeebe.version>8.0.1</zeebe.version>
+    <zeebe.version>8.0.4</zeebe.version>
   </properties>
 
   <dependencies>
@@ -69,7 +69,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>18.0</version>
+      <version>22.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
