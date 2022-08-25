@@ -54,7 +54,7 @@
   <properties>
     <java.version>1.8</java.version>
     <plugin.version.googlejavaformat>1.7</plugin.version.googlejavaformat>
-    <plugin.version.spotless>2.24.1</plugin.version.spotless>
+    <plugin.version.spotless>2.25.0</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
     <zeebe.version>8.0.5</zeebe.version>
