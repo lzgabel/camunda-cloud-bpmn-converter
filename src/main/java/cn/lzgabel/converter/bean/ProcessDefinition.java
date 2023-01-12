@@ -1,7 +1,9 @@
 package cn.lzgabel.converter.bean;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -48,7 +50,10 @@ public class ProcessDefinition {
   }
 
   public static ProcessDefinition of(String json) {
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper =
+        new ObjectMapper()
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     ProcessDefinition result;
     try {
       result = mapper.readValue(json, ProcessDefinition.class);
