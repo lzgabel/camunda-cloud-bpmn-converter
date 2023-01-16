@@ -61,7 +61,7 @@
     <junit.version>4.13.2</junit.version>
     <lombok.version>1.18.24</lombok.version>
     <plugin.version.googlejavaformat>1.7</plugin.version.googlejavaformat>
-    <plugin.version.spotless>2.29.0</plugin.version.spotless>
+    <plugin.version.spotless>2.30.0</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
     <zeebe.version>8.1.6</zeebe.version>
