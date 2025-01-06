@@ -55,7 +55,7 @@
     <commons-collections.version>3.2.2</commons-collections.version>
     <commons-lang3.version>3.12.0</commons-lang3.version>
     <guava.version>23.0</guava.version>
-    <jackson.version>2.13.4</jackson.version>
+    <jackson.version>2.18.2</jackson.version>
     <java.version>1.8</java.version>
     <json-schema-validator.version>1.0.73</json-schema-validator.version>
     <junit.version>4.13.2</junit.version>
