@@ -14,7 +14,11 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/*
+!.idea/codeStyles
+!.idea/externalDependencies.xml
+!.idea/google-java-format.xml
+!.idea/saveactions_settings.xml
 *.iws
 *.iml
 *.ipr
