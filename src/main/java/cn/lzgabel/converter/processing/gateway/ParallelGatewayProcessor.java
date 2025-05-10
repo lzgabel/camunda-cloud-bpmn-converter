@@ -1,17 +1,13 @@
 package cn.lzgabel.converter.processing.gateway;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.gateway.BranchNode;
+import cn.lzgabel.converter.bean.BranchDefinition;
 import cn.lzgabel.converter.bean.gateway.ParallelGatewayDefinition;
-import com.google.common.collect.Lists;
 import io.camunda.zeebe.model.bpmn.builder.AbstractFlowNodeBuilder;
 import io.camunda.zeebe.model.bpmn.builder.ParallelGatewayBuilder;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * 〈功能简述〉<br>
@@ -25,37 +21,23 @@ public class ParallelGatewayProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, ParallelGatewayDefinition definition)
+      final AbstractFlowNodeBuilder flowNodeBuilder, final ParallelGatewayDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    String name = definition.getNodeName();
-    ParallelGatewayBuilder parallelGatewayBuilder = flowNodeBuilder.parallelGateway().name(name);
-    List<BranchNode> branchNodes = definition.getBranchNodes();
-    if (CollectionUtils.isEmpty(branchNodes) && Objects.isNull(definition.getNextNode())) {
-      return parallelGatewayBuilder.getElement().getId();
-    }
+    final ParallelGatewayBuilder parallelGatewayBuilder =
+        (ParallelGatewayBuilder) createInstance(flowNodeBuilder, definition);
 
-    List<String> incoming = Lists.newArrayListWithCapacity(branchNodes.size());
-    for (BranchNode branchNode : branchNodes) {
-      BaseDefinition childNode = branchNode.getNextNode();
-      if (Objects.isNull(childNode)) {
-        incoming.add(parallelGatewayBuilder.getElement().getId());
-        continue;
-      }
-      String id =
-          onCreate(
-              moveToNode(parallelGatewayBuilder, parallelGatewayBuilder.getElement().getId()),
-              childNode);
-      if (StringUtils.isNotBlank(id)) {
-        incoming.add(id);
+    // 添加监听器
+    createExecutionListener(parallelGatewayBuilder, definition);
+
+    final String id = definition.getNodeId();
+    final List<BranchDefinition> branchDefinitions = definition.getBranchDefinitions();
+    if (CollectionUtils.isNotEmpty(branchDefinitions)) {
+      for (final BranchDefinition branchDefinition : branchDefinitions) {
+        final BaseDefinition nextNode = branchDefinition.getNextNode();
+        onCreate(moveToNode(parallelGatewayBuilder, id), nextNode);
       }
     }
 
-    String id = parallelGatewayBuilder.getElement().getId();
-    BaseDefinition nextNode = definition.getNextNode();
-    if (Objects.nonNull(nextNode)) {
-      nextNode.setIncoming(incoming);
-      return merge(parallelGatewayBuilder, id, Collections.emptyList(), nextNode);
-    }
     return id;
   }
 }

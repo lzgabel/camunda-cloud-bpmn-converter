@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>cn.lzgabel.converter</groupId>
@@ -52,19 +54,20 @@
   </distributionManagement>
 
   <properties>
+    <assertj-core.version>3.27.3</assertj-core.version>
     <commons-collections.version>3.2.2</commons-collections.version>
     <commons-lang3.version>3.12.0</commons-lang3.version>
-    <guava.version>23.0</guava.version>
+    <guava.version>33.1.0-jre</guava.version>
     <jackson.version>2.13.4</jackson.version>
-    <java.version>1.8</java.version>
+    <java.version>21</java.version>
     <json-schema-validator.version>1.0.73</json-schema-validator.version>
     <junit.version>4.13.2</junit.version>
-    <lombok.version>1.18.24</lombok.version>
-    <plugin.version.googlejavaformat>1.7</plugin.version.googlejavaformat>
-    <plugin.version.spotless>2.29.0</plugin.version.spotless>
+    <lombok.version>1.18.36</lombok.version>
+    <plugin.version.googlejavaformat>1.22.0</plugin.version.googlejavaformat>
+    <plugin.version.spotless>2.43.0</plugin.version.spotless>
 
     <skipChecks>false</skipChecks>
-    <zeebe.version>8.1.6</zeebe.version>
+    <zeebe.version>8.5.2</zeebe.version>
   </properties>
 
   <dependencies>
@@ -94,11 +97,6 @@
       <version>${lombok.version}</version>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
       <version>${jackson.version}</version>
@@ -113,11 +111,22 @@
       <artifactId>json-schema-validator</artifactId>
       <version>${json-schema-validator.version}</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj-core.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <finalName>camunda-cloud-bpmn-converter</finalName>
-
     <pluginManagement>
       <plugins>
         <plugin>
@@ -166,16 +175,17 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.0</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>21</source>
+          <target>21</target>
           <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.2.1</version>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -211,7 +221,7 @@
             <excludes>
               <exclude>**/target/**/*.md</exclude>
             </excludes>
-            <flexmark />
+            <flexmark/>
           </markdown>
         </configuration>
         <executions>

@@ -1,5 +1,6 @@
-package cn.lzgabel.converter.bean.event.start;
+package cn.lzgabel.converter.bean.event.end;
 
+import cn.lzgabel.converter.bean.event.EventType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -14,10 +15,10 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-public class NoneEndEventDefinition extends EndEventDefinition {
+public class TerminateEndEventDefinition extends EndEventDefinition {
 
   @Override
   public String getEventType() {
-    return EventType.NONE.value();
+    return EventType.TERMINATE;
   }
 }

@@ -1,6 +1,6 @@
 package cn.lzgabel.converter.bean.task;
 
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -19,6 +19,6 @@ public class ScriptTaskDefinition extends JobWorkerDefinition {
 
   @Override
   public String getNodeType() {
-    return BpmnElementType.SCRIPT_TASK.getElementTypeName().get();
+    return BpmnElementTypeName.SCRIPT_TASK;
   }
 }

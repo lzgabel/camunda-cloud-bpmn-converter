@@ -1,7 +1,6 @@
 package cn.lzgabel.converter.bean.event;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.event.start.EventType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -21,6 +20,6 @@ public abstract class EventDefinition extends BaseDefinition {
   private String eventType;
 
   public String getEventType() {
-    return EventType.NONE.value();
+    return EventType.NONE;
   }
 }

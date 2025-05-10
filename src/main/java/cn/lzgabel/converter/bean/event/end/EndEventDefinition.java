@@ -1,5 +1,6 @@
-package cn.lzgabel.converter.bean.event.start;
+package cn.lzgabel.converter.bean.event.end;
 
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import cn.lzgabel.converter.bean.event.EventDefinition;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +16,10 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-public class EndEventDefinition extends EventDefinition {
+public abstract class EndEventDefinition extends EventDefinition {
 
   @Override
   public String getNodeType() {
-    return "endEvent";
+    return BpmnElementTypeName.END_EVENT;
   }
 }

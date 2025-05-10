@@ -1,16 +1,13 @@
 package cn.lzgabel.converter.processing.event;
 
-import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.event.EventType;
+import cn.lzgabel.converter.bean.event.TimerDefinitionType;
 import cn.lzgabel.converter.bean.event.start.*;
 import cn.lzgabel.converter.processing.BpmnElementProcessor;
-import cn.lzgabel.converter.processing.BpmnElementProcessors;
+import io.camunda.zeebe.model.bpmn.builder.ExecutionListenerBuilder;
 import io.camunda.zeebe.model.bpmn.builder.StartEventBuilder;
 import java.lang.reflect.InvocationTargetException;
-import java.util.EnumMap;
-import java.util.Objects;
-import java.util.function.BiConsumer;
-import org.apache.commons.lang3.StringUtils;
+import java.util.function.Consumer;
 
 /**
  * 〈功能简述〉<br>
@@ -22,62 +19,61 @@ import org.apache.commons.lang3.StringUtils;
 public class StartEventProcessor
     implements BpmnElementProcessor<StartEventDefinition, StartEventBuilder> {
 
-  private static final BiConsumer<StartEventBuilder, TimerStartEventDefinition> EMPTY =
-      (start, definition) -> {};
-  private static final EnumMap<
-          TimerDefinitionType, BiConsumer<StartEventBuilder, TimerStartEventDefinition>>
-      consumers = new EnumMap<>(TimerDefinitionType.class);
-
-  static {
-    consumers.put(
-        TimerDefinitionType.DATE,
-        (start, definition) -> {
-          String timerDefinition = definition.getTimerDefinition();
-          start.timerWithDate(timerDefinition);
-        });
-    consumers.put(
-        TimerDefinitionType.DURATION,
-        (start, definition) -> {
-          String timerDefinition = definition.getTimerDefinition();
-          start.timerWithDuration(timerDefinition);
-        });
-    consumers.put(
-        TimerDefinitionType.CYCLE,
-        (start, definition) -> {
-          String timerDefinition = definition.getTimerDefinition();
-          start.timerWithCycle(timerDefinition);
-        });
+  @Override
+  public String onComplete(
+      final StartEventBuilder startEventBuilder, final StartEventDefinition definition)
+      throws InvocationTargetException, IllegalAccessException {
+    return createStartEvent(startEventBuilder, definition);
   }
 
-  @Override
-  public String onComplete(StartEventBuilder start, StartEventDefinition definition)
-      throws InvocationTargetException, IllegalAccessException {
+  private String createStartEvent(
+      final StartEventBuilder startEventBuilder, final StartEventDefinition definition) {
+    startEventBuilder.id(definition.getNodeId()).name(definition.getNodeName());
+
+    // 创建监听器
+    createExecutionListener(
+        executionListener -> {
+          final var jobType = executionListener.getJobType();
+          final var retries = executionListener.getJobRetries();
+          final Consumer<ExecutionListenerBuilder> builder =
+              (ExecutionListenerBuilder b) ->
+                  b.eventType(executionListener.getEventType()).type(jobType).retries(retries);
+          startEventBuilder.zeebeExecutionListener(builder);
+        },
+        definition);
+
     // 事件类型 timer/message 默认：none
-    String eventType = definition.getEventType();
-    String nodeName = definition.getNodeName();
-    start.name(nodeName);
-    if (StringUtils.isNotBlank(eventType)) {
-      if (EventType.TIMER.isEqual(eventType)) {
-        TimerStartEventDefinition timer = (TimerStartEventDefinition) definition;
-        consumers
-            .getOrDefault(
-                TimerDefinitionType.timerDefinitionOf(timer.getTimerDefinitionType()), EMPTY)
-            .accept(start, timer);
-      } else if (EventType.MESSAGE.isEqual(eventType)) {
-        MessageStartEventDefinition message = (MessageStartEventDefinition) definition;
-        String messageName = message.getMessageName();
-        start.message(messageName);
+    return switch (definition.getEventType()) {
+      case EventType.TIMER ->
+          createTimerStartEvent(startEventBuilder, (TimerStartEventDefinition) definition);
+      case EventType.MESSAGE ->
+          createMessageStartEvent(startEventBuilder, (MessageStartEventDefinition) definition);
+      default -> definition.getNodeId();
+    };
+  }
+
+  private String createMessageStartEvent(
+      final StartEventBuilder startEventBuilder, final MessageStartEventDefinition definition) {
+    startEventBuilder.message(definition.getMessageName());
+    return definition.getNodeId();
+  }
+
+  private String createTimerStartEvent(
+      final StartEventBuilder startEventBuilder, final TimerStartEventDefinition definition) {
+    switch (definition.getTimerDefinitionType()) {
+      case TimerDefinitionType.DATE -> {
+        final String timerDefinition = definition.getTimerDefinitionExpression();
+        startEventBuilder.timerWithDate(timerDefinition);
+      }
+      case TimerDefinitionType.CYCLE -> {
+        final String timerDefinition = definition.getTimerDefinitionExpression();
+        startEventBuilder.timerWithCycle(timerDefinition);
+      }
+      case TimerDefinitionType.DURATION -> {
+        final String timerDefinition = definition.getTimerDefinitionExpression();
+        startEventBuilder.timerWithDuration(timerDefinition);
       }
     }
-
-    String id = start.getElement().getId();
-    BaseDefinition nextNode = definition.getNextNode();
-    if (Objects.isNull(nextNode)) {
-      return id;
-    }
-
-    BpmnElementType elementType = BpmnElementType.bpmnElementTypeFor(nextNode.getNodeType());
-    return BpmnElementProcessors.getProcessor(elementType)
-        .onComplete(moveToNode(start, id), nextNode);
+    return definition.getNodeId();
   }
 }

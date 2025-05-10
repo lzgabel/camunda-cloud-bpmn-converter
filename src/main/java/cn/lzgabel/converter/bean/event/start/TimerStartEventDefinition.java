@@ -1,5 +1,7 @@
 package cn.lzgabel.converter.bean.event.start;
 
+import cn.lzgabel.converter.bean.event.EventType;
+import cn.lzgabel.converter.bean.event.TimerDefinitionType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -20,10 +22,10 @@ public class TimerStartEventDefinition extends StartEventDefinition {
   /** {@link TimerDefinitionType} */
   @NonNull private String timerDefinitionType;
 
-  @NonNull private String timerDefinition;
+  @NonNull private String timerDefinitionExpression;
 
   @Override
   public String getEventType() {
-    return EventType.TIMER.value();
+    return EventType.TIMER;
   }
 }

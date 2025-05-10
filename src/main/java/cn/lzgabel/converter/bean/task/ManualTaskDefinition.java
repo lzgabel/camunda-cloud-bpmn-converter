@@ -1,7 +1,7 @@
 package cn.lzgabel.converter.bean.task;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -20,6 +20,6 @@ public class ManualTaskDefinition extends BaseDefinition {
 
   @Override
   public String getNodeType() {
-    return BpmnElementType.MANUAL_TASK.getElementTypeName().get();
+    return BpmnElementTypeName.MANUAL_TASK;
   }
 }

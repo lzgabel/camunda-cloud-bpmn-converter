@@ -1,5 +1,6 @@
 package cn.lzgabel.converter.bean.event.intermediate;
 
+import cn.lzgabel.converter.bean.event.EventType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -17,10 +18,14 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class TimerIntermediateCatchEventDefinition extends IntermediateCatchEventDefinition {
 
-  @NonNull private String timerDefinition;
+  /** 时间定义表达式 */
+  @NonNull private String timerDefinitionExpression;
+
+  /** 时间定义类型：date/duration */
+  @NonNull private String timerDefinitionType;
 
   @Override
   public String getEventType() {
-    return "timer";
+    return EventType.TIMER;
   }
 }

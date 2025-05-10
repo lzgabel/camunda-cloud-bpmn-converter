@@ -1,7 +1,7 @@
 package cn.lzgabel.converter.bean.task;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,16 +19,14 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class UserTaskDefinition extends BaseDefinition {
 
-  private String assignee;
-
-  private String candidateGroups;
-
-  private String userTaskForm;
-
   public Map<String, String> taskHeaders;
+  private String assignee;
+  private String candidateGroups;
+  private String candidateUsers;
+  private String userTaskForm;
 
   @Override
   public String getNodeType() {
-    return BpmnElementType.USER_TASK.getElementTypeName().get();
+    return BpmnElementTypeName.USER_TASK;
   }
 }

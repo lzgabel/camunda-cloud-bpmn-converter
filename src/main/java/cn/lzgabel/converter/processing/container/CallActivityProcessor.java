@@ -21,20 +21,21 @@ public class CallActivityProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, CallActivityDefinition definition)
+      final AbstractFlowNodeBuilder flowNodeBuilder, final CallActivityDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
-    CallActivityBuilder callActivityBuilder = flowNodeBuilder.callActivity();
+    final CallActivityBuilder callActivityBuilder =
+        (CallActivityBuilder) createInstance(flowNodeBuilder, definition);
     callActivityBuilder.getElement().setName(definition.getNodeName());
     callActivityBuilder.addExtensionElement(
         ZeebeCalledElement.class,
-        (ZeebeCalledElement zeebeCalledElement) -> {
+        (final ZeebeCalledElement zeebeCalledElement) -> {
           zeebeCalledElement.setProcessId(definition.getProcessId());
           zeebeCalledElement.setPropagateAllChildVariablesEnabled(
               definition.isPropagateAllChildVariablesEnabled());
           callActivityBuilder.addExtensionElement(zeebeCalledElement);
         });
-    String id = callActivityBuilder.getElement().getId();
-    BaseDefinition childNode = definition.getNextNode();
+    final String id = definition.getNodeId();
+    final BaseDefinition childNode = definition.getNextNode();
 
     if (Objects.nonNull(childNode)) {
       return onCreate(moveToNode(callActivityBuilder, id), childNode);

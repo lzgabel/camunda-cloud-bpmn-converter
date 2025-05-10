@@ -1,5 +1,6 @@
 package cn.lzgabel.converter.bean.event.start;
 
+import cn.lzgabel.converter.bean.event.EventType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -21,6 +22,6 @@ public class MessageStartEventDefinition extends StartEventDefinition {
 
   @Override
   public String getEventType() {
-    return EventType.MESSAGE.value();
+    return EventType.MESSAGE;
   }
 }

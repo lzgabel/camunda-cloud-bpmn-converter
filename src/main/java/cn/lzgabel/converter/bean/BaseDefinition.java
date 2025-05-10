@@ -1,17 +1,11 @@
 package cn.lzgabel.converter.bean;
 
-import cn.lzgabel.converter.bean.event.intermediate.IntermediateCatchEventDefinition;
-import cn.lzgabel.converter.bean.event.start.EndEventDefinition;
-import cn.lzgabel.converter.bean.event.start.StartEventDefinition;
-import cn.lzgabel.converter.bean.gateway.ExclusiveGatewayDefinition;
-import cn.lzgabel.converter.bean.gateway.ParallelGatewayDefinition;
-import cn.lzgabel.converter.bean.subprocess.CallActivityDefinition;
-import cn.lzgabel.converter.bean.subprocess.SubProcessDefinition;
+import cn.lzgabel.converter.bean.listener.ExecutionListener;
 import cn.lzgabel.converter.bean.task.*;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.util.List;
+import java.util.function.Supplier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -26,65 +20,9 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.EXISTING_PROPERTY,
-    property = "nodeType",
-    visible = true)
-@JsonSubTypes({
-  // event
-  @JsonSubTypes.Type(
-      value = StartEventDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.START_EVENT),
-  @JsonSubTypes.Type(
-      value = EndEventDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.END_EVENT),
-
-  // task
-  @JsonSubTypes.Type(
-      value = UserTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.USER_TASK),
-  @JsonSubTypes.Type(
-      value = ServiceTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.SERVICE_TASK),
-  @JsonSubTypes.Type(
-      value = SendTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.SEND_TASK),
-  @JsonSubTypes.Type(
-      value = ScriptTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.SCRIPT_TASK),
-  @JsonSubTypes.Type(
-      value = ReceiveTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.RECEIVE_TASK),
-  @JsonSubTypes.Type(
-      value = ManualTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.MANUAL_TASK),
-  @JsonSubTypes.Type(
-      value = BusinessRuleTaskDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.BUSINESS_RULE_TASK),
-
-  // sub process
-  @JsonSubTypes.Type(
-      value = CallActivityDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.CALL_ACTIVITY),
-  @JsonSubTypes.Type(
-      value = SubProcessDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.SUB_PROCESS),
-
-  // gateway
-  @JsonSubTypes.Type(
-      value = ParallelGatewayDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.PARALLEL_GATEWAY),
-  @JsonSubTypes.Type(
-      value = ExclusiveGatewayDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.EXCLUSIVE_GATEWAY),
-
-  // catch event
-  @JsonSubTypes.Type(
-      value = IntermediateCatchEventDefinition.class,
-      name = BpmnElementType.BpmnElementTypeName.INTERMEDIATE_CATCH_EVENT)
-})
 public abstract class BaseDefinition implements Serializable {
+  /** 节点标识 */
+  private String nodeId;
 
   /** 节点名称 */
   private String nodeName;
@@ -98,17 +36,38 @@ public abstract class BaseDefinition implements Serializable {
   /** 后继节点 */
   private BaseDefinition nextNode;
 
+  /** 分支节点 */
+  private List<BranchDefinition> branchDefinitions;
+
+  /** 执行监听器 */
+  private List<ExecutionListener> executionListeners;
+
   public abstract String getNodeType();
 
   public abstract static class BaseDefinitionBuilder<
       C extends BaseDefinition, B extends BaseDefinition.BaseDefinitionBuilder<C, B>> {
-    public B nodeNode(String nodeName) {
+
+    public BaseDefinitionBuilder() {
+      executionListeners = Lists.newArrayList();
+    }
+
+    public B nodeNode(final String nodeName) {
       this.nodeName = nodeName;
       return self();
     }
 
-    public B nextNode(BaseDefinition nextNode) {
+    public B nextNode(final BaseDefinition nextNode) {
       this.nextNode = nextNode;
+      return self();
+    }
+
+    public B executionlistener(final ExecutionListener listener) {
+      executionListeners.add(listener);
+      return self();
+    }
+
+    public B executionlistener(final Supplier<ExecutionListener> supplier) {
+      executionListeners.add(supplier.get());
       return self();
     }
   }

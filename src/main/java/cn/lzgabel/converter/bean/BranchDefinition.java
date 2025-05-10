@@ -1,6 +1,6 @@
-package cn.lzgabel.converter.bean.gateway;
+package cn.lzgabel.converter.bean;
 
-import cn.lzgabel.converter.bean.BaseDefinition;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -15,7 +15,10 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-public class BranchNode {
+public class BranchDefinition {
+
+  @JsonProperty("isDefault")
+  private boolean isDefault;
 
   private String nodeName;
 

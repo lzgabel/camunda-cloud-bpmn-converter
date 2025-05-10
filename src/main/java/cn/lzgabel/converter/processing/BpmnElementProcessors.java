@@ -8,9 +8,10 @@ import cn.lzgabel.converter.processing.event.EndEventProcessor;
 import cn.lzgabel.converter.processing.event.IntermediateCatchEventProcessor;
 import cn.lzgabel.converter.processing.event.StartEventProcessor;
 import cn.lzgabel.converter.processing.gateway.ExclusiveGatewayProcessor;
+import cn.lzgabel.converter.processing.gateway.InclusiveGatewayProcessor;
 import cn.lzgabel.converter.processing.gateway.ParallelGatewayProcessor;
 import cn.lzgabel.converter.processing.task.*;
-import io.camunda.zeebe.model.bpmn.builder.AbstractBaseElementBuilder;
+import io.camunda.zeebe.model.bpmn.builder.AbstractFlowNodeBuilder;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ public final class BpmnElementProcessors {
     // gateways
     processors.put(BpmnElementType.EXCLUSIVE_GATEWAY, new ExclusiveGatewayProcessor());
     processors.put(BpmnElementType.PARALLEL_GATEWAY, new ParallelGatewayProcessor());
+    processors.put(BpmnElementType.INCLUSIVE_GATEWAY, new InclusiveGatewayProcessor());
 
     // containers
     processors.put(BpmnElementType.SUB_PROCESS, new SubProcessProcessor());
@@ -43,7 +45,7 @@ public final class BpmnElementProcessors {
     processors.put(BpmnElementType.INTERMEDIATE_CATCH_EVENT, new IntermediateCatchEventProcessor());
   }
 
-  public static <E extends BaseDefinition, T extends AbstractBaseElementBuilder>
+  public static <E extends BaseDefinition, T extends AbstractFlowNodeBuilder>
       BpmnElementProcessor<E, T> getProcessor(final BpmnElementType bpmnElementType) {
 
     final BpmnElementProcessor processor = processors.get(bpmnElementType);

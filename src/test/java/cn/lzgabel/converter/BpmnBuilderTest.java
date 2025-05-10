@@ -1,1191 +1,1117 @@
 package cn.lzgabel.converter;
 
-import cn.lzgabel.converter.bean.ProcessDefinition;
-import cn.lzgabel.converter.bean.event.intermediate.MessageIntermediateCatchEventDefinition;
-import cn.lzgabel.converter.bean.event.intermediate.TimerIntermediateCatchEventDefinition;
-import cn.lzgabel.converter.bean.event.start.MessageStartEventDefinition;
-import cn.lzgabel.converter.bean.event.start.TimerDefinitionType;
-import cn.lzgabel.converter.bean.event.start.TimerStartEventDefinition;
-import cn.lzgabel.converter.bean.gateway.BranchNode;
-import cn.lzgabel.converter.bean.gateway.ExclusiveGatewayDefinition;
-import cn.lzgabel.converter.bean.gateway.ParallelGatewayDefinition;
-import cn.lzgabel.converter.bean.subprocess.CallActivityDefinition;
-import cn.lzgabel.converter.bean.subprocess.SubProcessDefinition;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+
+import cn.lzgabel.converter.bean.*;
+import cn.lzgabel.converter.bean.event.end.NoneEndEventDefinition;
+import cn.lzgabel.converter.bean.event.start.NoneStartEventDefinition;
+import cn.lzgabel.converter.bean.gateway.*;
+import cn.lzgabel.converter.bean.listener.ExecutionListener;
 import cn.lzgabel.converter.bean.task.*;
-import com.google.common.collect.Maps;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import org.junit.Rule;
+import io.camunda.zeebe.model.bpmn.instance.BaseElement;
+import io.camunda.zeebe.model.bpmn.instance.BpmnModelElementInstance;
+import io.camunda.zeebe.model.bpmn.instance.EndEvent;
+import io.camunda.zeebe.model.bpmn.instance.ExclusiveGateway;
+import io.camunda.zeebe.model.bpmn.instance.InclusiveGateway;
+import io.camunda.zeebe.model.bpmn.instance.ParallelGateway;
+import io.camunda.zeebe.model.bpmn.instance.Process;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.StartEvent;
+import io.camunda.zeebe.model.bpmn.instance.UserTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListener;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListenerEventType;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListeners;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
+import java.util.List;
+import java.util.function.Function;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 public class BpmnBuilderTest {
-
-  @Rule public TestName testName = new TestName();
-
-  private static final String OUT_PATH = "target/out/";
+  private final Function<List<ZeebeExecutionListenerEventType>, List<ExecutionListener>>
+      EXECUTION_LISTENER =
+          (List<ZeebeExecutionListenerEventType> eventTypes) ->
+              eventTypes.stream()
+                  .map(
+                      eventType ->
+                          ExecutionListener.builder()
+                              .jobType("task_execution_listener")
+                              .eventType(eventType)
+                              .build())
+                  .toList();
 
   @Test
-  public void timer_date_start_event_from_json() throws IOException {
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Timer Start\",\n"
-            + "        \"nodeType\":\"startEvent\",\n"
-            + "        \"eventType\":\"timer\",\n"
-            + "        \"timerDefinitionType\":\"date\",\n"
-            + "        \"timerDefinition\":\"2019-10-01T12:00:00+08:00\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Service Task A\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"jobType\":\"abc\",\n"
-            + "            \"jobRetries\":\"2\",\n"
-            + "            \"taskHeaders\":{\n"
-            + "                \"a\":\"b\",\n"
-            + "                \"e\":\"d\"\n"
-            + "            },\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
+  public void shouldBuildProcess() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(ServiceTaskDefinition.builder().jobType("test").build())
+            .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final Process process = modelInstance.getModelElementById("process-id");
+    assertThat(process).isNotNull();
+    assertThat(process.getId()).isEqualTo("process-id");
+    assertThat(process.getName()).isEqualTo("process-name");
   }
 
   @Test
-  public void timer_cycle_start_event_from_json() throws IOException {
+  public void shouldBuildProcessWithStartExecutionListener() {
+    // given
+    final var listener =
+        ExecutionListener.builder()
+            .eventType(ZeebeExecutionListenerEventType.start)
+            .jobType("task_execution_listener")
+            .build();
 
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Timer Start\",\n"
-            + "        \"nodeType\":\"startEvent\",\n"
-            + "        \"eventType\":\"timer\",\n"
-            + "        \"timerDefinitionType\":\"cycle\",\n"
-            + "        \"timerDefinition\":\"R1/PT2M\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Service Task A\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"jobType\":\"abc\",\n"
-            + "            \"jobRetries\":\"3\",\n"
-            + "            \"taskHeaders\":{\n"
-            + "                \"a\":\"b\",\n"
-            + "                \"e\":\"d\"\n"
-            + "            },\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(ServiceTaskDefinition.builder().jobType("test").build())
+            .executionListener(listener)
+            .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final Process process = modelInstance.getModelElementById("process-id");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(process, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void message_start_event_from_json() throws IOException {
+  public void shouldBuildProcessWithEndExecutionListener() {
+    // given
+    final var listener =
+        ExecutionListener.builder()
+            .eventType(ZeebeExecutionListenerEventType.end)
+            .jobType("task_execution_listener")
+            .build();
 
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Message Start\",\n"
-            + "        \"nodeType\":\"startEvent\",\n"
-            + "        \"eventType\":\"message\",\n"
-            + "        \"messageName\":\"test-message-name\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Service Task A\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"jobType\":\"abc\",\n"
-            + "            \"jobRetries\":\"3\",\n"
-            + "            \"taskHeaders\":{\n"
-            + "                \"a\":\"b\",\n"
-            + "                \"e\":\"d\"\n"
-            + "            },\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(ServiceTaskDefinition.builder().jobType("test").build())
+            .executionListener(listener)
+            .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final Process process = modelInstance.getModelElementById("process-id");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(process, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void intermediate_timer_catch_event_from_json() throws IOException {
+  public void shouldBuildStartEvent() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder().nodeId("start").nodeName("start").build())
+            .build();
 
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Service Task A\",\n"
-            + "        \"nodeType\":\"serviceTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"jobRetries\":\"3\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"a\":\"b\",\n"
-            + "            \"e\":\"d\"\n"
-            + "        },\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Intermediate Timer Catch Event\",\n"
-            + "            \"nodeType\":\"intermediateCatchEvent\",\n"
-            + "            \"eventType\":\"timer\",\n"
-            + "            \"timerDefinition\":\"PT4M\",\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final StartEvent startEvent = modelInstance.getModelElementById("start");
+    assertThat(startEvent).isNotNull();
+    assertThat(startEvent.getId()).isEqualTo("start");
+    assertThat(startEvent.getName()).isEqualTo("start");
   }
 
   @Test
-  public void intermediate_message_catch_event_from_json() throws IOException {
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Service Task A\",\n"
-            + "        \"nodeType\":\"serviceTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"jobRetries\":\"3\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"a\":\"b\",\n"
-            + "            \"e\":\"d\"\n"
-            + "        },\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Intermediate Message Catch Event\",\n"
-            + "            \"nodeType\":\"intermediateCatchEvent\",\n"
-            + "            \"eventType\":\"message\",\n"
-            + "            \"messageName\":\"message-name\",\n"
-            + "            \"correlationKey\":\"=test-correlationKey\",\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void service_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Service Task A\",\n"
-            + "        \"nodeType\":\"serviceTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"a\":\"b\",\n"
-            + "            \"e\":\"d\"\n"
-            + "        },\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Service Task B\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"jobType\":\"abc\",\n"
-            + "            \"taskHeaders\":{\n"
-            + "                \"a\":\"b\",\n"
-            + "                \"e\":\"d\"\n"
-            + "            }\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void send_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Send Task A\",\n"
-            + "        \"nodeType\":\"sendTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"a\":\"b\",\n"
-            + "            \"e\":\"d\"\n"
-            + "        },\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Send Task B\",\n"
-            + "            \"nodeType\":\"sendTask\",\n"
-            + "            \"jobType\":\"abc\",\n"
-            + "            \"taskHeaders\":{\n"
-            + "                \"a\":\"b\",\n"
-            + "                \"e\":\"d\"\n"
-            + "            }\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void receive_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Receive Task A\",\n"
-            + "        \"nodeType\":\"receiveTask\",\n"
-            + "        \"messageName\":\"message-name\",\n"
-            + "        \"correlationKey\":\"=test-correlationKey\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Receive Task B\",\n"
-            + "            \"nodeType\":\"receiveTask\",\n"
-            + "            \"messageName\":\"message-name\",\n"
-            + "            \"correlationKey\":\"=test-correlationKey\",\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void script_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Script Task A\",\n"
-            + "        \"nodeType\":\"scriptTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"jobRetries\":\"3\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"language\":\"javascript\",\n"
-            + "            \"script\":\"a+b\"\n"
-            + "        },\n"
-            + "        \"nextNode\":null\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void user_task_from_json() throws IOException {
-
-    BpmnModelInstance done =
-        Bpmn.createProcess("user-task-process")
-            .startEvent("start")
-            .userTask("user-task-id-1")
-            .zeebeUserTaskForm("{}")
-            .userTask("user-task-id-2")
-            .zeebeUserTaskForm("{}")
-            .endEvent("end-id")
-            .done();
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"User Task A\",\n"
-            + "        \"nodeType\":\"userTask\",\n"
-            + "        \"assignee\":\"lizhi\",\n"
-            + "        \"candidateGroups\":\"lizhi\",\n"
-            + "        \"userTaskForm\":\"{}\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"key1\":\"b\",\n"
-            + "            \"key2\":\"a+b\"\n"
-            + "        },\n"
-            + "        \"nextNode\":null\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void business_rule_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Business Rule Task A\",\n"
-            + "        \"nodeType\":\"businessRuleTask\",\n"
-            + "        \"jobType\":\"abc\",\n"
-            + "        \"jobRetries\":\"3\",\n"
-            + "        \"taskHeaders\":{\n"
-            + "            \"decisionRef\":\"test-decision\"\n"
-            + "        },\n"
-            + "        \"nextNode\":null\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void manual_task_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Manual Task A\",\n"
-            + "        \"nodeType\":\"manualTask\",\n"
-            + "        \"nextNode\":null\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void sub_process_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Sub Process A\",\n"
-            + "        \"nodeType\":\"subProcess\",\n"
-            + "        \"childNode\":{\n"
-            + // sub process nested process
-            "            \"nodeName\":\"Service Task A\",\n"
-            + "            \"jobType\":\"a\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"nextNode\":null\n"
-            + "        },\n"
-            + "        \"nextNode\":{\n"
-            + // Node after sub process
-            "            \"nodeName\":\"Service Task B\",\n"
-            + "            \"jobType\":\"b\",\n"
-            + "            \"nodeType\":\"serviceTask\",\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void call_activity_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"智能媒资组\",\n"
-            + "        \"processId\":\"call-mediax-process-id\",\n"
-            + "        \"propagateAllChildVariablesEnabled\":\"true\",\n"
-            + "        \"nodeType\":\"callActivity\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"magic应用组\",\n"
-            + "            \"processId\":\"call-magic-process-id\",\n"
-            + "            \"propagateAllChildVariablesEnabled\":\"true\",\n"
-            + "            \"nodeType\":\"callActivity\",\n"
-            + "            \"nextNode\":null\n"
-            + "        }\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void exclusive_gateway_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Exclusive Gateway Start\",\n"
-            + "        \"nodeType\":\"exclusiveGateway\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Exclusive Gateway End\",\n"
-            + "            \"nodeType\":\"exclusiveGateway\",\n"
-            + "            \"nextNode\":{\n"
-            + "                \"nodeName\":\"Service Task C\",\n"
-            + "                \"jobType\":\"abd\",\n"
-            + "                \"nodeType\":\"serviceTask\",\n"
-            + "                \"nextNode\":null\n"
-            + "            }\n"
-            + "        },\n"
-            + "        \"branchNodes\":[\n"
-            + "            {\n"
-            + "                \"nodeName\":\"condition A\",\n"
-            + "                \"conditionExpression\":\"=id>1\",\n"
-            + "                \"nextNode\":{\n"
-            + "                    \"nodeName\":\"Service Task A\",\n"
-            + "                    \"jobType\":\"abd\",\n"
-            + "                    \"nodeType\":\"serviceTask\",\n"
-            + "                    \"nextNode\":null\n"
-            + "                }\n"
-            + "            },\n"
-            + "            {\n"
-            + "                \"nodeName\":\"condition B\",\n"
-            + "                \"conditionExpression\":\"=id<1\",\n"
-            + "                \"nextNode\":{\n"
-            + "                    \"nodeName\":\"Service Task B\",\n"
-            + "                    \"nodeType\":\"serviceTask\",\n"
-            + "                    \"jobType\":\"abc\",\n"
-            + "                    \"nextNode\":null\n"
-            + "                }\n"
-            + "            }\n"
-            + "        ]\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void parallel_gateway_from_json() throws IOException {
-
-    String json =
-        "{\n"
-            + "    \"process\":{\n"
-            + "        \"processId\":\"process-id\",\n"
-            + "        \"name\":\"process-name\"\n"
-            + "    },\n"
-            + "    \"processNode\":{\n"
-            + "        \"nodeName\":\"Parallel Gateway Start\",\n"
-            + "        \"nodeType\":\"parallelGateway\",\n"
-            + "        \"nextNode\":{\n"
-            + "            \"nodeName\":\"Parallel Gateway End\",\n"
-            + "            \"nodeType\":\"parallelGateway\",\n"
-            + "            \"nextNode\":null\n"
-            + "        },\n"
-            + "        \"branchNodes\":[\n"
-            + "            {\n"
-            + "                \"nodeName\":\"branch A\",\n"
-            + "                \"nextNode\":{\n"
-            + "                    \"nodeName\":\"Service Task A\",\n"
-            + "                    \"jobType\":\"abd\",\n"
-            + "                    \"nodeType\":\"serviceTask\",\n"
-            + "                    \"nextNode\":null\n"
-            + "                }\n"
-            + "            },\n"
-            + "            {\n"
-            + "                \"nodeName\":\"branch B\",\n"
-            + "                \"nextNode\":{\n"
-            + "                    \"nodeName\":\"Service Task B\",\n"
-            + "                    \"nodeType\":\"serviceTask\",\n"
-            + "                    \"jobType\":\"abc\",\n"
-            + "                    \"nextNode\":null\n"
-            + "                }\n"
-            + "            },\n"
-            + "            {\n"
-            + "                \"nodeName\":\"branch C\",\n"
-            + "                \"nextNode\":{\n"
-            + "                    \"nodeName\":\"Service Task C\",\n"
-            + "                    \"nodeType\":\"serviceTask\",\n"
-            + "                    \"jobType\":\"abc\",\n"
-            + "                    \"nextNode\":null\n"
-            + "                }\n"
-            + "            }\n"
-            + "        ]\n"
-            + "    }\n"
-            + "}";
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(json);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  // ------  from processDefinition --------
-  @Test
-  public void timer_date_start_event_from_process_definition() throws IOException {
-
-    TimerStartEventDefinition processNode =
-        TimerStartEventDefinition.builder()
-            .timerDefinitionType(TimerDefinitionType.DATE.value())
-            .timerDefinition("2019-10-01T12:00:00+08:00")
-            .nextNode(
-                ServiceTaskDefinition.builder()
-                    .nodeName("lizhi")
-                    .jobType("abc")
-                    .jobRetries("4")
+  public void shouldBuildStartEventWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.start)))
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final StartEvent startEvent = modelInstance.getModelElementById("start");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(startEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void timer_cycle_start_event_from_process_definition() throws IOException {
-
-    TimerStartEventDefinition processNode =
-        TimerStartEventDefinition.builder()
-            .timerDefinitionType(TimerDefinitionType.CYCLE.value())
-            .timerDefinition("R1/PT5M")
-            .nextNode(
-                ServiceTaskDefinition.builder()
-                    .nodeName("lizhi")
-                    .jobType("abc")
-                    .jobRetries("4")
+  public void shouldBuildStartEventWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.end)))
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
+    // then
+    final StartEvent startEvent = modelInstance.getModelElementById("start");
 
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(startEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void message_start_event_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    MessageStartEventDefinition processNode =
-        MessageStartEventDefinition.builder()
-            .nodeName("message start")
-            .messageName("test-message-name")
-            .nextNode(
-                ServiceTaskDefinition.builder()
-                    .nodeName("lizhi")
-                    .jobType("abc")
-                    .jobRetries("4")
-                    .taskHeaders(taskHeaders)
+  public void shouldBuildStartEventWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(
+                                ZeebeExecutionListenerEventType.start,
+                                ZeebeExecutionListenerEventType.end)))
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
+    // then
+    final StartEvent startEvent = modelInstance.getModelElementById("start");
 
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(startEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(2);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void intermediate_timer_catch_event_from_process_definition() throws IOException {
+  public void shouldBuildEndEvent() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneEndEventDefinition.builder().nodeId("end").nodeName("end_name").build())
+            .build();
 
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    ServiceTaskDefinition processNode =
-        ServiceTaskDefinition.builder()
-            .nodeName("service task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .nextNode(
-                TimerIntermediateCatchEventDefinition.builder()
-                    .nodeName("timer catch a")
-                    .timerDefinition("PT4M")
+    // then
+    final EndEvent endEvent = modelInstance.getModelElementById("end");
+    assertThat(endEvent).isNotNull();
+    assertThat(endEvent.getId()).isEqualTo("end");
+    assertThat(endEvent.getName()).isEqualTo("end_name");
+  }
+
+  @Test
+  public void shouldBuildEndEventWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneEndEventDefinition.builder()
+                    .nodeId("end")
+                    .nodeName("name")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.start)))
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final EndEvent endEvent = modelInstance.getModelElementById("end");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(endEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void intermediate_message_catch_event_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    ServiceTaskDefinition processNode =
-        ServiceTaskDefinition.builder()
-            .nodeName("service task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .nextNode(
-                MessageIntermediateCatchEventDefinition.builder()
-                    .nodeName("catch message a")
-                    .messageName("test-message-name")
-                    .correlationKey("test-correlation-key")
+  public void shouldBuildEndEventWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneEndEventDefinition.builder()
+                    .nodeId("end")
+                    .nodeName("name")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.end)))
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final EndEvent endEvent = modelInstance.getModelElementById("end");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(endEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void service_task_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    ServiceTaskDefinition processNode =
-        ServiceTaskDefinition.builder()
-            .nodeName("service task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .build();
-
-    ProcessDefinition processDefinition =
+  public void shouldBuildEndEventWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
         ProcessDefinition.builder()
             .name("process-name")
             .processId("process-id")
-            .processNode(processNode)
+            .processNode(
+                NoneEndEventDefinition.builder()
+                    .nodeId("end")
+                    .nodeName("name")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(
+                                ZeebeExecutionListenerEventType.start,
+                                ZeebeExecutionListenerEventType.end)))
+                    .build())
             .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final EndEvent endEvent = modelInstance.getModelElementById("end");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(endEvent, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(2);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void send_task_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    SendTaskDefinition processNode =
-        SendTaskDefinition.builder()
-            .nodeName("send task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .build();
-
-    ProcessDefinition processDefinition =
+  public void shouldBuildServiceTask() {
+    // given
+    final ProcessDefinition processDefinition =
         ProcessDefinition.builder()
             .name("process-name")
             .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void receive_task_from_process_definition() throws IOException {
-
-    ReceiveTaskDefinition processNode =
-        ReceiveTaskDefinition.builder()
-            .nodeName("receive task a")
-            .messageName("test-receive-message-name")
-            .correlationKey("=test-receive-correlation-key")
-            .build();
-
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void script_task_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("language", "javascript");
-    taskHeaders.put("script", "a+d");
-
-    ScriptTaskDefinition processNode =
-        ScriptTaskDefinition.builder()
-            .nodeName("script task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .build();
-
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void user_task_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    UserTaskDefinition processNode =
-        UserTaskDefinition.builder()
-            .nodeName("user task a")
-            .assignee("lizhi")
-            .candidateGroups("lizhi,shuwen")
-            .userTaskForm("{}")
-            .taskHeaders(taskHeaders)
-            .build();
-
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void business_rule_task_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("a", "b");
-    taskHeaders.put("e", "d");
-
-    BusinessRuleTaskDefinition processNode =
-        BusinessRuleTaskDefinition.builder()
-            .nodeName("business rule task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .build();
-
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void manual_task_from_process_definition() throws IOException {
-
-    ManualTaskDefinition processNode =
-        ManualTaskDefinition.builder().nodeName("manual rule task a").build();
-
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
-
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
-  }
-
-  @Test
-  public void sub_process_from_process_definition() throws IOException {
-
-    Map<String, String> taskHeaders = Maps.newHashMap();
-    taskHeaders.put("decisionRef", "test-decision");
-
-    ServiceTaskDefinition processNode =
-        ServiceTaskDefinition.builder()
-            .nodeName("service task a")
-            .jobType("abc")
-            .taskHeaders(taskHeaders)
-            .jobRetries("4")
-            .nextNode(
-                SubProcessDefinition.builder()
-                    .nodeName("sub-process")
-                    .childNode(
-                        ServiceTaskDefinition.builder()
-                            .nodeName("inner service task")
-                            .jobType("inner-service-task")
-                            .build())
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
                     .nextNode(
                         ServiceTaskDefinition.builder()
-                            .nodeName("service task b")
-                            .jobType("abd")
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .jobType("xflow_user_task")
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
                             .build())
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final ServiceTask serviceTask = modelInstance.getModelElementById("task");
+
+    final ZeebeTaskDefinition taskDefinition =
+        getExtensionElement(serviceTask, ZeebeTaskDefinition.class);
+    assertThat(taskDefinition.getType()).isEqualTo("xflow_user_task");
+    assertThat(taskDefinition.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void call_activity_from_process_definition() throws IOException {
-
-    CallActivityDefinition processNode =
-        CallActivityDefinition.builder()
-            .nodeName("call mediax process")
-            .processId("call-mediax-id")
-            .propagateAllChildVariablesEnabled(true)
-            .build();
-
-    ProcessDefinition processDefinition =
+  public void shouldBuildServiceTaskWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
         ProcessDefinition.builder()
             .name("process-name")
             .processId("process-id")
-            .processNode(processNode)
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        ServiceTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .jobType("xflow_user_task")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(ZeebeExecutionListenerEventType.start)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
             .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ServiceTask serviceTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(serviceTask, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
   }
 
   @Test
-  public void exclusive_gateway_from_process_definition() throws IOException {
-
-    BranchNode branchNode1 =
-        BranchNode.builder()
-            .nodeName("分支1")
-            .conditionExpression("id>1")
-            .nextNode(
-                ServiceTaskDefinition.builder().nodeName("service a").jobType("service-a").build())
+  public void shouldBuildServiceTaskWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        ServiceTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .jobType("xflow_user_task")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(ZeebeExecutionListenerEventType.end)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
             .build();
 
-    BranchNode branchNode2 =
-        BranchNode.builder()
-            .nodeName("分支2")
-            .conditionExpression("id<=1")
-            .nextNode(
-                ServiceTaskDefinition.builder().nodeName("service a").jobType("service-a").build())
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ServiceTask serviceTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(serviceTask, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildServiceTaskWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        ServiceTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .jobType("xflow_user_task")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(
+                                        ZeebeExecutionListenerEventType.start,
+                                        ZeebeExecutionListenerEventType.end)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
             .build();
 
-    ExclusiveGatewayDefinition processNode =
-        ExclusiveGatewayDefinition.builder()
-            .nodeName("exclusive gateway start")
-            .branchNode(branchNode1)
-            .branchNode(branchNode2)
-            .nextNode(
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ServiceTask serviceTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(serviceTask, ZeebeExecutionListeners.class);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildUserTaskWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        UserTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(ZeebeExecutionListenerEventType.start)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final UserTask userTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(userTask, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildUserTaskWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        UserTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(ZeebeExecutionListenerEventType.end)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final UserTask userTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(userTask, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildUserTaskWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                NoneStartEventDefinition.builder()
+                    .nodeId("start")
+                    .nodeName("start")
+                    .nextNode(
+                        UserTaskDefinition.builder()
+                            .nodeId("task")
+                            .nodeName("task_name")
+                            .executionListeners(
+                                EXECUTION_LISTENER.apply(
+                                    List.of(
+                                        ZeebeExecutionListenerEventType.start,
+                                        ZeebeExecutionListenerEventType.end)))
+                            .nextNode(NoneEndEventDefinition.builder().nodeId("end").build())
+                            .build())
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final UserTask userTask = modelInstance.getModelElementById("task");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(userTask, ZeebeExecutionListeners.class);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildExclusiveGateway() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
                 ExclusiveGatewayDefinition.builder()
-                    .nodeName("exclusive gateway end")
-                    .nextNode(
-                        ServiceTaskDefinition.builder()
-                            .nodeName("service c")
-                            .jobType("service-c")
-                            .build())
+                    .nodeId("exclusive")
+                    .nodeName("exclusive_gateway")
                     .build())
             .build();
 
-    ProcessDefinition processDefinition =
-        ProcessDefinition.builder()
-            .name("process-name")
-            .processId("process-id")
-            .processNode(processNode)
-            .build();
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // then
+    final ExclusiveGateway exclusiveGateway = modelInstance.getModelElementById("exclusive");
+    assertThat(exclusiveGateway).isNotNull();
+    assertThat(exclusiveGateway.getId()).isEqualTo("exclusive");
+    assertThat(exclusiveGateway.getName()).isEqualTo("exclusive_gateway");
   }
 
   @Test
-  public void parallel_gateway_from_process_definition() throws IOException {
-
-    BranchNode branchNode1 =
-        BranchNode.builder()
-            .nodeName("分支1")
-            .conditionExpression("id>1")
-            .nextNode(
-                ServiceTaskDefinition.builder().nodeName("service a").jobType("service-a").build())
-            .build();
-
-    BranchNode branchNode2 =
-        BranchNode.builder()
-            .nodeName("分支2")
-            .conditionExpression("id>1")
-            .nextNode(
-                ServiceTaskDefinition.builder().nodeName("service a").jobType("service-a").build())
-            .build();
-
-    ParallelGatewayDefinition processNode =
-        ParallelGatewayDefinition.builder()
-            .nodeName("parallel gateway start")
-            .branchNode(branchNode1)
-            .branchNode(branchNode2)
-            .nextNode(
-                ParallelGatewayDefinition.builder()
-                    .nodeName("parallel gateway end")
-                    .nextNode(
-                        ServiceTaskDefinition.builder()
-                            .nodeName("service c")
-                            .jobType("service-c")
-                            .build())
-                    .build())
-            .build();
-
-    ProcessDefinition processDefinition =
+  public void shouldBuildExclusiveGatewayWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
         ProcessDefinition.builder()
             .name("process-name")
             .processId("process-id")
-            .processNode(processNode)
+            .processNode(
+                ExclusiveGatewayDefinition.builder()
+                    .nodeId("exclusive")
+                    .nodeName("exclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.start)))
+                    .build())
             .build();
 
-    BpmnModelInstance bpmnModelInstance = BpmnBuilder.build(processDefinition);
-    Path path = Paths.get(OUT_PATH + testName.getMethodName() + ".bpmn");
-    if (path.toFile().exists()) {
-      path.toFile().delete();
-    }
-    Files.createDirectories(path.getParent());
-    Bpmn.writeModelToFile(Files.createFile(path).toFile(), bpmnModelInstance);
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ExclusiveGateway exclusiveGateway = modelInstance.getModelElementById("exclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(exclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildExclusiveGatewayWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ExclusiveGatewayDefinition.builder()
+                    .nodeId("exclusive")
+                    .nodeName("exclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ExclusiveGateway exclusiveGateway = modelInstance.getModelElementById("exclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(exclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildExclusiveGatewayWithTerminateExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ExclusiveGatewayDefinition.builder()
+                    .nodeId("exclusive")
+                    .nodeName("exclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(ZeebeExecutionListenerEventType.terminate)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ExclusiveGateway exclusiveGateway = modelInstance.getModelElementById("exclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(exclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.terminate);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildExclusiveGatewayWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ExclusiveGatewayDefinition.builder()
+                    .nodeId("exclusive")
+                    .nodeName("exclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(
+                                ZeebeExecutionListenerEventType.start,
+                                ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ExclusiveGateway exclusiveGateway = modelInstance.getModelElementById("exclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(exclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(2);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildInclusiveGateway() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                InclusiveGatewayDefinition.builder()
+                    .nodeId("inclusive")
+                    .nodeName("inclusive_gateway")
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final InclusiveGateway inclusiveGateway = modelInstance.getModelElementById("inclusive");
+    assertThat(inclusiveGateway).isNotNull();
+    assertThat(inclusiveGateway.getId()).isEqualTo("inclusive");
+    assertThat(inclusiveGateway.getName()).isEqualTo("inclusive_gateway");
+  }
+
+  @Test
+  public void shouldBuildInclusiveGatewayWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                InclusiveGatewayDefinition.builder()
+                    .nodeId("inclusive")
+                    .nodeName("inclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.start)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final InclusiveGateway inclusiveGateway = modelInstance.getModelElementById("inclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(inclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildInclusiveGatewayWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                InclusiveGatewayDefinition.builder()
+                    .nodeId("inclusive")
+                    .nodeName("inclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final InclusiveGateway inclusiveGateway = modelInstance.getModelElementById("inclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(inclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildInclusiveGatewayWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                InclusiveGatewayDefinition.builder()
+                    .nodeId("inclusive")
+                    .nodeName("inclusive_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(
+                                ZeebeExecutionListenerEventType.start,
+                                ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final InclusiveGateway inclusiveGateway = modelInstance.getModelElementById("inclusive");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(inclusiveGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(2);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildParallelGateway() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ParallelGatewayDefinition.builder()
+                    .nodeId("parallel")
+                    .nodeName("parallel_gateway")
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ParallelGateway parallelGateway = modelInstance.getModelElementById("parallel");
+    assertThat(parallelGateway).isNotNull();
+    assertThat(parallelGateway.getId()).isEqualTo("parallel");
+    assertThat(parallelGateway.getName()).isEqualTo("parallel_gateway");
+  }
+
+  @Test
+  public void shouldBuildParallelGatewayWithStartExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ParallelGatewayDefinition.builder()
+                    .nodeId("parallel")
+                    .nodeName("parallel_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.start)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ParallelGateway parallelGateway = modelInstance.getModelElementById("parallel");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(parallelGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildParallelGatewayWithEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ParallelGatewayDefinition.builder()
+                    .nodeId("parallel")
+                    .nodeName("parallel_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(List.of(ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ParallelGateway parallelGateway = modelInstance.getModelElementById("parallel");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(parallelGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(1);
+
+    final ZeebeExecutionListener executionListener =
+        zeebeExecutionListeners.getExecutionListeners().iterator().next();
+    assertThat(executionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(executionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(executionListener.getRetries()).isEqualTo("3");
+  }
+
+  @Test
+  public void shouldBuildParallelGatewayWithStartAndEndExecutionListener() {
+    // given
+    final ProcessDefinition processDefinition =
+        ProcessDefinition.builder()
+            .name("process-name")
+            .processId("process-id")
+            .processNode(
+                ParallelGatewayDefinition.builder()
+                    .nodeId("parallel")
+                    .nodeName("parallel_gateway")
+                    .executionListeners(
+                        EXECUTION_LISTENER.apply(
+                            List.of(
+                                ZeebeExecutionListenerEventType.start,
+                                ZeebeExecutionListenerEventType.end)))
+                    .build())
+            .build();
+
+    // when
+    final BpmnModelInstance modelInstance = BpmnBuilder.build(processDefinition);
+
+    // then
+    final ParallelGateway parallelGateway = modelInstance.getModelElementById("parallel");
+
+    final ZeebeExecutionListeners zeebeExecutionListeners =
+        getExtensionElement(parallelGateway, ZeebeExecutionListeners.class);
+    assertThat(zeebeExecutionListeners.getExecutionListeners()).hasSize(2);
+
+    final var iterator = zeebeExecutionListeners.getExecutionListeners().iterator();
+    final ZeebeExecutionListener startExecutionListener = iterator.next();
+    assertThat(startExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(startExecutionListener.getEventType())
+        .isEqualTo(ZeebeExecutionListenerEventType.start);
+    assertThat(startExecutionListener.getRetries()).isEqualTo("3");
+
+    final ZeebeExecutionListener endExecutionListener = iterator.next();
+    assertThat(endExecutionListener.getType()).isEqualTo("task_execution_listener");
+    assertThat(endExecutionListener.getEventType()).isEqualTo(ZeebeExecutionListenerEventType.end);
+    assertThat(endExecutionListener.getRetries()).isEqualTo("3");
+  }
+
+  private <T extends BpmnModelElementInstance> T getExtensionElement(
+      final BaseElement element, final Class<T> typeClass) {
+    final T extensionElement =
+        (T) element.getExtensionElements().getUniqueChildElementByType(typeClass);
+    assertThat(element).isNotNull();
+    return extensionElement;
   }
 }

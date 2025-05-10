@@ -1,7 +1,7 @@
 package cn.lzgabel.converter.bean.subprocess;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -23,6 +23,6 @@ public class SubProcessDefinition extends BaseDefinition {
 
   @Override
   public String getNodeType() {
-    return BpmnElementType.SUB_PROCESS.getElementTypeName().get();
+    return BpmnElementTypeName.SUB_PROCESS;
   }
 }

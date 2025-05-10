@@ -4,19 +4,16 @@ import cn.lzgabel.converter.bean.BaseDefinition;
 import cn.lzgabel.converter.bean.BpmnElementType;
 import cn.lzgabel.converter.bean.Process;
 import cn.lzgabel.converter.bean.ProcessDefinition;
+import cn.lzgabel.converter.bean.listener.ExecutionListener;
 import cn.lzgabel.converter.processing.BpmnElementProcessor;
 import cn.lzgabel.converter.processing.BpmnElementProcessors;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.builder.AbstractBaseElementBuilder;
 import io.camunda.zeebe.model.bpmn.builder.ProcessBuilder;
 import io.camunda.zeebe.model.bpmn.builder.StartEventBuilder;
-import io.camunda.zeebe.model.bpmn.instance.Gateway;
-import io.camunda.zeebe.model.bpmn.instance.SequenceFlow;
-import io.camunda.zeebe.model.bpmn.instance.dc.Bounds;
-import io.camunda.zeebe.model.bpmn.instance.di.Waypoint;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -28,19 +25,26 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class BpmnBuilder {
 
-  public static BpmnModelInstance build(String json) {
-    return build(ProcessDefinition.of(json));
-  }
+  private static final BiConsumer<ProcessBuilder, List<ExecutionListener>>
+      EXECUTION_LISTENER_CONSUMER =
+          (builder, executionListeners) ->
+              executionListeners.forEach(
+                  executionListener ->
+                      builder.zeebeExecutionListener(
+                          c ->
+                              c.eventType(executionListener.getEventType())
+                                  .retries(executionListener.getJobRetries())
+                                  .type(executionListener.getJobType())));
 
-  public static BpmnModelInstance build(ProcessDefinition processDefinition) {
+  public static BpmnModelInstance build(final ProcessDefinition processDefinition) {
     if (processDefinition == null) {
-      return null;
+      throw new IllegalArgumentException("processDefinition must not be null");
     }
 
     try {
-      ProcessBuilder executableProcess = Bpmn.createExecutableProcess();
+      final ProcessBuilder executableProcess = Bpmn.createExecutableProcess();
 
-      Process process = processDefinition.getProcess();
+      final Process process = processDefinition.getProcess();
       Optional.ofNullable(process.getName())
           .filter(StringUtils::isNotBlank)
           .ifPresent(executableProcess::name);
@@ -49,78 +53,21 @@ public class BpmnBuilder {
           .filter(StringUtils::isNotBlank)
           .ifPresent(executableProcess::id);
 
-      StartEventBuilder startEventBuilder = executableProcess.startEvent();
-      BaseDefinition processNode = processDefinition.getProcessNode();
-      BpmnElementProcessor<BaseDefinition, AbstractBaseElementBuilder> processor =
-          BpmnElementProcessors.getProcessor(BpmnElementType.START_EVENT);
-      String lastNode = processor.onCreate(startEventBuilder, processNode);
-      processor.moveToNode(startEventBuilder, lastNode).endEvent();
-      BpmnModelInstance modelInstance = correctWayPoints(startEventBuilder.done());
-      Bpmn.validateModel(modelInstance);
+      // 添加监听器
+      EXECUTION_LISTENER_CONSUMER.accept(executableProcess, process.getExecutionListeners());
 
+      final StartEventBuilder startEventBuilder = executableProcess.startEvent();
+      final BaseDefinition processNode = processDefinition.getProcessNode();
+      final BpmnElementProcessor<BaseDefinition, ?> processor =
+          BpmnElementProcessors.getProcessor(BpmnElementType.START_EVENT);
+
+      processor.onCreate(startEventBuilder, processNode);
+      final BpmnModelInstance modelInstance = startEventBuilder.done();
+      Bpmn.validateModel(modelInstance);
       return modelInstance;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       e.printStackTrace();
       throw new RuntimeException("创建失败: e=" + e.getMessage());
     }
-  }
-
-  private static BpmnModelInstance correctWayPoints(BpmnModelInstance model) {
-    List<SequenceFlow> sequenceFlows =
-        (List<SequenceFlow>) model.getModelElementsByType(SequenceFlow.class);
-
-    for (SequenceFlow sf : sequenceFlows) {
-      if (!(sf.getTarget() instanceof Gateway)) {
-        continue;
-      }
-
-      // Get source and target's bounds.
-      Bounds s_b =
-          (Bounds) sf.getSource().getDiagramElement().getUniqueChildElementByType(Bounds.class);
-      Bounds t_b =
-          (Bounds) sf.getTarget().getDiagramElement().getUniqueChildElementByType(Bounds.class);
-
-      // Calculate the new waypoints
-      Waypoint wp;
-
-      // Source and target are at the same y-coordinate
-      if (s_b.getY() + s_b.getHeight() / 2 == t_b.getY() + t_b.getHeight() / 2) {
-        // Clear the old waypoints
-        sf.getDiagramElement().getWaypoints().clear();
-
-        wp = model.newInstance(Waypoint.class);
-        wp.setX(s_b.getX() + s_b.getWidth());
-        wp.setY(s_b.getY() + s_b.getHeight() / 2);
-        sf.getDiagramElement().getWaypoints().add(wp);
-
-        wp = model.newInstance(Waypoint.class);
-        wp.setX(t_b.getX());
-        wp.setY(t_b.getY() + t_b.getHeight() / 2);
-        sf.getDiagramElement().getWaypoints().add(wp);
-      }
-
-      // Source and target are not at the same y-coordinate
-      if (s_b.getY() + s_b.getHeight() / 2 > t_b.getY() + t_b.getHeight() / 2) {
-        // Clear the old waypoints
-        sf.getDiagramElement().getWaypoints().clear();
-
-        wp = model.newInstance(Waypoint.class);
-        wp.setX(s_b.getX() + s_b.getWidth());
-        wp.setY(s_b.getY() + s_b.getHeight() / 2);
-        sf.getDiagramElement().getWaypoints().add(wp);
-
-        wp = model.newInstance(Waypoint.class);
-        wp.setX(t_b.getX() + t_b.getWidth() / 2);
-        wp.setY(s_b.getY() + s_b.getHeight() / 2);
-        sf.getDiagramElement().getWaypoints().add(wp);
-
-        wp = model.newInstance(Waypoint.class);
-        wp.setX(t_b.getX() + t_b.getWidth() / 2);
-        wp.setY(t_b.getY() + t_b.getHeight());
-        sf.getDiagramElement().getWaypoints().add(wp);
-      }
-    }
-
-    return model;
   }
 }

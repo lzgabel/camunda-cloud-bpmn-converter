@@ -1,6 +1,6 @@
 package cn.lzgabel.converter.bean.task;
 
-import cn.lzgabel.converter.bean.BpmnElementType;
+import cn.lzgabel.converter.bean.BpmnElementType.BpmnElementTypeName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -19,6 +19,6 @@ public class SendTaskDefinition extends JobWorkerDefinition {
 
   @Override
   public String getNodeType() {
-    return BpmnElementType.SEND_TASK.getElementTypeName().get();
+    return BpmnElementTypeName.SEND_TASK;
   }
 }

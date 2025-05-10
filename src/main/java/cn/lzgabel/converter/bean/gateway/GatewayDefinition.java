@@ -1,6 +1,7 @@
 package cn.lzgabel.converter.bean.gateway;
 
 import cn.lzgabel.converter.bean.BaseDefinition;
+import cn.lzgabel.converter.bean.BranchDefinition;
 import com.google.common.collect.Lists;
 import java.util.List;
 import lombok.Data;
@@ -20,18 +21,18 @@ import lombok.experimental.SuperBuilder;
 public abstract class GatewayDefinition extends BaseDefinition {
 
   /** 分支节点 */
-  private List<BranchNode> branchNodes;
+  private List<BranchDefinition> branchDefinitions;
 
   public abstract static class GatewayDefinitionBuilder<
           C extends GatewayDefinition, B extends GatewayDefinition.GatewayDefinitionBuilder<C, B>>
       extends BaseDefinitionBuilder<C, B> {
 
     public GatewayDefinitionBuilder() {
-      branchNodes = Lists.newArrayList();
+      branchDefinitions = Lists.newArrayList();
     }
 
-    public B branchNode(BranchNode branchNode) {
-      branchNodes.add(branchNode);
+    public B branchDefinition(final BranchDefinition branchDefinition) {
+      branchDefinitions.add(branchDefinition);
       return self();
     }
   }

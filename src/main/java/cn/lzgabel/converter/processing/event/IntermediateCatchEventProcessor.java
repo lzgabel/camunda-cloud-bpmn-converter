@@ -1,12 +1,15 @@
 package cn.lzgabel.converter.processing.event;
 
+import cn.lzgabel.converter.bean.event.EventType;
+import cn.lzgabel.converter.bean.event.TimerDefinitionType;
 import cn.lzgabel.converter.bean.event.intermediate.IntermediateCatchEventDefinition;
 import cn.lzgabel.converter.bean.event.intermediate.MessageIntermediateCatchEventDefinition;
 import cn.lzgabel.converter.bean.event.intermediate.TimerIntermediateCatchEventDefinition;
-import cn.lzgabel.converter.bean.event.start.EventType;
 import cn.lzgabel.converter.processing.BpmnElementProcessor;
 import io.camunda.zeebe.model.bpmn.builder.AbstractFlowNodeBuilder;
-import org.apache.commons.lang3.StringUtils;
+import io.camunda.zeebe.model.bpmn.builder.ExecutionListenerBuilder;
+import io.camunda.zeebe.model.bpmn.builder.IntermediateCatchEventBuilder;
+import java.util.function.Consumer;
 
 /**
  * 〈功能简述〉<br>
@@ -20,49 +23,65 @@ public class IntermediateCatchEventProcessor
 
   @Override
   public String onComplete(
-      AbstractFlowNodeBuilder flowNodeBuilder, IntermediateCatchEventDefinition definition) {
-    String nodeName = definition.getNodeName();
-    String eventType = definition.getEventType();
-    if (EventType.TIMER.isEqual(eventType)) {
-      TimerIntermediateCatchEventDefinition timer =
-          (TimerIntermediateCatchEventDefinition) definition;
-      String timerDefinition = timer.getTimerDefinition();
-      return flowNodeBuilder
-          .intermediateCatchEvent()
-          .timerWithDuration(timerDefinition)
-          .getElement()
-          .getId();
-    } else if (EventType.MESSAGE.isEqual(eventType)) {
-      MessageIntermediateCatchEventDefinition message =
-          (MessageIntermediateCatchEventDefinition) definition;
-      String messageName = message.getMessageName();
-      String messageCorrelationKey = message.getCorrelationKey();
-      if (StringUtils.isBlank(messageName) || StringUtils.isBlank(messageCorrelationKey)) {
-        throw new RuntimeException("messageName/correlationKey 不能为空");
-      }
-      return flowNodeBuilder
-          .intermediateCatchEvent()
-          .name(nodeName)
-          .message(
-              messageBuilder -> {
-                if (StringUtils.isNotBlank(messageName)) {
-                  messageBuilder.name(messageName);
-                }
-                if (StringUtils.isNotBlank(messageCorrelationKey)) {
-                  // The correlationKey is an expression that usually accesses a variable of the
-                  // process instance
-                  // that holds the correlation key of the message
-                  // 默认如果没有 '=' 则自动拼上
-                  if (StringUtils.startsWith(messageCorrelationKey, ZEEBE_EXPRESSION_PREFIX)) {
-                    messageBuilder.zeebeCorrelationKey(messageCorrelationKey);
-                  } else {
-                    messageBuilder.zeebeCorrelationKeyExpression(messageCorrelationKey);
-                  }
-                }
-              })
-          .getElement()
-          .getId();
+      final AbstractFlowNodeBuilder flowNodeBuilder,
+      final IntermediateCatchEventDefinition definition) {
+    return createIntermediateCatchEvent(flowNodeBuilder, definition);
+  }
+
+  private String createIntermediateCatchEvent(
+      final AbstractFlowNodeBuilder flowNodeBuilder,
+      final IntermediateCatchEventDefinition definition) {
+    final String eventType = definition.getEventType();
+    final IntermediateCatchEventBuilder intermediateCatchEventBuilder =
+        (IntermediateCatchEventBuilder) createInstance(flowNodeBuilder, definition);
+
+    // 创建监听器
+    createExecutionListener(
+        executionListener -> {
+          final var jobType = executionListener.getJobType();
+          final var retries = executionListener.getJobRetries();
+          final Consumer<ExecutionListenerBuilder> builder =
+              (ExecutionListenerBuilder b) ->
+                  b.eventType(executionListener.getEventType()).type(jobType).retries(retries);
+          intermediateCatchEventBuilder.zeebeExecutionListener(builder);
+        },
+        definition);
+
+    return switch (eventType) {
+      case EventType.TIMER ->
+          createTimerIntermediateCatchEvent(intermediateCatchEventBuilder, definition);
+      case EventType.MESSAGE ->
+          createMessageIntermediateCatchEvent(intermediateCatchEventBuilder, definition);
+      default -> throw new IllegalArgumentException(String.format("暂不支持: %s 类型", eventType));
+    };
+  }
+
+  private String createMessageIntermediateCatchEvent(
+      final IntermediateCatchEventBuilder intermediateCatchEventBuilder,
+      final IntermediateCatchEventDefinition definition) {
+    final MessageIntermediateCatchEventDefinition message =
+        (MessageIntermediateCatchEventDefinition) definition;
+    intermediateCatchEventBuilder.message(message.getMessageName());
+    return definition.getNodeId();
+  }
+
+  private String createTimerIntermediateCatchEvent(
+      final IntermediateCatchEventBuilder intermediateCatchEventBuilder,
+      final IntermediateCatchEventDefinition definition) {
+
+    final TimerIntermediateCatchEventDefinition timer =
+        (TimerIntermediateCatchEventDefinition) definition;
+
+    final String expression = timer.getTimerDefinitionExpression();
+    switch (timer.getTimerDefinitionType()) {
+      case TimerDefinitionType.DATE -> intermediateCatchEventBuilder.timerWithDate(expression);
+      case TimerDefinitionType.DURATION ->
+          intermediateCatchEventBuilder.timerWithDuration(expression);
+      default ->
+          throw new IllegalArgumentException(
+              "未知 timer definition type: " + timer.getTimerDefinitionType());
     }
-    return null;
+
+    return definition.getNodeId();
   }
 }

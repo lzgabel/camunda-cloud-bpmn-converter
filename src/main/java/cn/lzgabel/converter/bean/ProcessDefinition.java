@@ -1,9 +1,8 @@
 package cn.lzgabel.converter.bean;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
+import cn.lzgabel.converter.bean.listener.ExecutionListener;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.collect.Lists;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -26,46 +25,38 @@ public class ProcessDefinition {
 
   private BaseDefinition processNode;
 
-  public abstract static class ProcessDefinitionBuilder<
-      C extends ProcessDefinition, B extends ProcessDefinition.ProcessDefinitionBuilder> {
-
-    public ProcessDefinitionBuilder() {
-      process = new Process();
-    }
-
-    public B name(String name) {
-      process.setName(name);
-      return self();
-    }
-
-    public B processId(@NonNull String processId) {
-      process.setProcessId(processId);
-      return self();
-    }
-
-    public B processNode(@NonNull BaseDefinition processNode) {
-      this.processNode = processNode;
-      return self();
-    }
-  }
-
-  public static ProcessDefinition of(String json) {
-    ObjectMapper mapper =
-        new ObjectMapper()
-            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    ProcessDefinition result;
-    try {
-      result = mapper.readValue(json, ProcessDefinition.class);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e.getMessage(), e.getCause());
-    }
-    return result;
-  }
-
   @SneakyThrows
   @Override
   public String toString() {
     return new ObjectMapper().writeValueAsString(this);
+  }
+
+  public abstract static class ProcessDefinitionBuilder<
+      C extends ProcessDefinition, B extends ProcessDefinitionBuilder> {
+
+    public ProcessDefinitionBuilder() {
+      process = new Process();
+      process.executionListeners = Lists.newArrayList();
+    }
+
+    public B name(final String name) {
+      process.setName(name);
+      return self();
+    }
+
+    public B processId(@NonNull final String processId) {
+      process.setProcessId(processId);
+      return self();
+    }
+
+    public B processNode(@NonNull final BaseDefinition processNode) {
+      this.processNode = processNode;
+      return self();
+    }
+
+    public B executionListener(@NonNull final ExecutionListener executionListener) {
+      process.executionListeners.add(executionListener);
+      return self();
+    }
   }
 }
