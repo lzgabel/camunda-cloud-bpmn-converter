@@ -11,7 +11,7 @@ public class EndEventTransformer implements ElementTransformer {
   @Override
   public void transform(final NodeDto element, final TransformContext context) {
     final var properties = element.getProperties();
-    switch ((String) properties.getOrDefault("eventType", "none")) {
+    switch (properties.getOrDefault("eventType", EventType.NONE)) {
       case EventType.TERMINATE ->
           context.addDefinition(
               TerminateEndEventDefinition.builder()

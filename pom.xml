@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>cn.lzgabel.converter</groupId>
   <artifactId>camunda-cloud-bpmn-converter</artifactId>
-  <version>1.0.6-SNAPSHOT</version>
+  <version>1.0.6</version>
 
   <name>camunda-cloud-bpmn-converter</name>
   <description>Convert json to bpmn for Camunda Cloud.</description>
@@ -212,7 +210,7 @@
             <excludes>
               <exclude>**/target/**/*.md</exclude>
             </excludes>
-            <flexmark/>
+            <flexmark />
           </markdown>
         </configuration>
         <executions>

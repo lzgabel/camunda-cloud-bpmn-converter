@@ -23,4 +23,7 @@ public class ProcessDefinitionDto {
 
   /** flows */
   private List<FlowDto> flows;
+
+  /** execution listeners */
+  private List<ExecutionListenerDto> executionListeners;
 }
